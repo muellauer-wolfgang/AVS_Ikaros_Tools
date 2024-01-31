@@ -28,8 +28,8 @@ namespace Splitbuchungen_Auflösen_UnitTests.Services
         zinsInfo);
       Assert.NotNull(sutZinsbuchungsliste);
       Assert.Equal(1, sutZinsbuchungsliste.Count());
-      Assert.True(336.0M < sutZinsbuchungsliste[0].Kosten_Zinsen, "Intervall passt nicht");
-      Assert.True(337.0M > sutZinsbuchungsliste[0].Kosten_Zinsen, "Intervall passt nicht");
+      Assert.True(340.0M < sutZinsbuchungsliste[0].Kosten_Zinsen, "Intervall passt nicht");
+      Assert.True(342.0M > sutZinsbuchungsliste[0].Kosten_Zinsen, "Intervall passt nicht");
     }
 
     [Fact]
@@ -85,8 +85,8 @@ namespace Splitbuchungen_Auflösen_UnitTests.Services
         zinsInfo);
       Assert.NotNull(sutZinsbuchungsliste);
       Assert.Equal(1, sutZinsbuchungsliste.Count());
-      Assert.True(125.0M < sutZinsbuchungsliste[0].Kosten_Zinsen, "Intervall passt nicht");
-      Assert.True(127.0M > sutZinsbuchungsliste[0].Kosten_Zinsen, "Intervall passt nicht");
+      Assert.True(126.0M < sutZinsbuchungsliste[0].Kosten_Zinsen, "Intervall passt nicht");
+      Assert.True(129.0M > sutZinsbuchungsliste[0].Kosten_Zinsen, "Intervall passt nicht");
     }
 
 

@@ -79,32 +79,32 @@ namespace Splitbuchungen_Auflösen.Services
             ebDTO.Kosten_Hauptforderung = decimal.Zero;
           }
           //jetzt noch kontrollieren, ob ich Verzinsungs-Info finde
-          string zinsart = worksheet[r, 26].Value;
+          string zinsart = worksheet[r, 27].Value;
           if (!string.IsNullOrEmpty(zinsart)) {
             Hauptforderung_Verzinsung hfz = new Hauptforderung_Verzinsung();
-            hfz.Zinsart = worksheet[r, 26].Value;
+            hfz.Zinsart = worksheet[r, 27].Value;
             
-            if (decimal.TryParse(worksheet[r, 27].Value, NumberStyles.Any, null, out decimal zinssatz)) {
+            if (decimal.TryParse(worksheet[r, 28].Value, NumberStyles.Any, null, out decimal zinssatz)) {
               hfz.Zinssatz = zinssatz;
             } else {
               hfz.Zinssatz = decimal.Zero;
             }
 
-            if (decimal.TryParse(worksheet[r, 28].Value, NumberStyles.Any, null, out decimal zinsenaus)) {
+            if (decimal.TryParse(worksheet[r, 29].Value, NumberStyles.Any, null, out decimal zinsenaus)) {
               hfz.ZinsenAus = zinsenaus;
             } else {
               hfz.ZinsenAus = decimal.Zero;
             }
 
-            hfz.Forderungsart = worksheet[r, 29].Value;
+            hfz.Forderungsart = worksheet[r, 30].Value;
 
-            if (decimal.TryParse(worksheet[r, 30].Value, NumberStyles.Any, null, out decimal forderungsanteil)) {
+            if (decimal.TryParse(worksheet[r, 31].Value, NumberStyles.Any, null, out decimal forderungsanteil)) {
               hfz.Forderungsanteil = forderungsanteil;
             } else {
               hfz.Forderungsanteil = decimal.One;
             }
 
-            if (DateTime.TryParse(worksheet[r, 31].Value, null, DateTimeStyles.None, out DateTime verzinstAb)) {
+            if (DateTime.TryParse(worksheet[r, 32].Value, null, DateTimeStyles.None, out DateTime verzinstAb)) {
               hfz.ZinsenAb = verzinstAb;
             } else {
               hfz.ZinsenAb = DateTime.MinValue;
@@ -113,6 +113,18 @@ namespace Splitbuchungen_Auflösen.Services
           } else {
             ebDTO.VerzinsungsInfo = null;
           }
+
+          //kontrolle, ob es eine wirklich sinnvolle Zeile ist:
+          if (string.IsNullOrEmpty(ebDTO.Aktenzeichen)) {
+            Debug.WriteLine($"Error in Line {r}");
+            continue;
+            //ohne Aktenzeichen hat das keinen Sinn
+          }
+          if (ebDTO.Kürzel.Equals("H00") && ebDTO.VerzinsungsInfo == null) {
+            Debug.WriteLine("sollte es nicht geben");
+            continue;
+          }
+
 
           yield return ebDTO;
         }

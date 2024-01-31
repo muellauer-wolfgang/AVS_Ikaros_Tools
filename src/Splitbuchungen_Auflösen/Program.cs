@@ -3,6 +3,7 @@ using Splitbuchungen_Auflösen.Startup;
 using Splitbuchungen_Auflösen.Infrastructure.Interfaces;
 using Splitbuchungen_Auflösen.Services.Interfaces;
 using Splitbuchungen_Auflösen.Models;
+using Syncfusion.XlsIO.FormatParser.FormatTokens;
 
 namespace Splitbuchungen_Auflösen
 {
@@ -14,16 +15,7 @@ namespace Splitbuchungen_Auflösen
     public static IConfigProvider Config { get; set; }
     static void Main(string[] args)
     {
-
-      DateTime bis = new DateTime(2018, 4, 17);
-      DateTime von = new DateTime(2016, 9, 20);
-      TimeSpan diffInDays = bis - von;
-      decimal zinstage = new decimal( diffInDays.TotalDays) + 1M;
-      decimal dcimalZinsen = 4873.35M * 4.38M * zinstage  / (100.0M *  365.0M);
-
-      double zinsen = 4873.35 * 4.38 * (diffInDays.TotalDays + 1)  / (100.0*  365.0) ;
-      Console.WriteLine($"Zinsen: {zinsen}");
-
+      int counter = 0;
       Dictionary<string, AktBuchungen> buchungsDict = new();
 
       Config = Container.Resolve<IConfigProvider>();
@@ -31,18 +23,61 @@ namespace Splitbuchungen_Auflösen
       Console.WriteLine($"BasePath: {Config.BasePath}");
       IXlsx_Reader xlsxReader = Container.Resolve<IXlsx_Reader>();
 
-      foreach(Akt_Einzelbuchung_DTO dto in xlsxReader.Retrieve_Buchungen(@"IKAROS-Export-20160012675.xlsx")) {
+      Console.WriteLine("START LESEN XLSX");
+
+      foreach (Akt_Einzelbuchung_DTO dto in xlsxReader.Retrieve_Buchungen(@"IKAROS-Export.xlsx")) {
+        counter++;
+        if (counter % 100 == 0) {
+          Console.WriteLine($"Anzahl Records gelesen: {counter}");
+        }
         if (!buchungsDict.ContainsKey(dto.Aktenzeichen)) {
-          buchungsDict.Add(dto.Aktenzeichen, new AktBuchungen() );
+          buchungsDict.Add(dto.Aktenzeichen, new AktBuchungen());
         }
         buchungsDict[dto.Aktenzeichen].Add_Einzelbuchung(dto);
-        Console.WriteLine(dto.ToString());
+        //Console.WriteLine(dto.ToString());
       }
-      Console.WriteLine("LESEN FERTIG");
-      Console.WriteLine($"Anzahl Akte: {buchungsDict.Count}");
-      foreach(AktBuchungen ab in buchungsDict.Values) {
-        Console.WriteLine($"Saldo: {ab.SaldiereBuchungen()}");
+
+      Console.WriteLine("LESEN XLSX FERTIG");
+      Console.WriteLine($"Anzahl Akte in XLSX-File: {buchungsDict.Count}");
+
+      //jetzt lesen des csv-Files
+
+      Console.WriteLine("START LESEN CSV");
+      int csvCounter = 0;
+      ISubito_Csv_Manager subitoMgr = Container.Resolve<ISubito_Csv_Manager>();
+      subitoMgr.ReadFile(Path.Combine(Config.BasePath, "IKAROS-Akten.csv"));
+      foreach (var fieldSet in subitoMgr.EnumerateRecords()) {
+        csvCounter++;
+        string aktId = fieldSet[0];
+        if (!string.IsNullOrEmpty(aktId)) {
+          if (buchungsDict.ContainsKey(aktId)) {
+            try {
+              BuchungsSaldo salden = buchungsDict[aktId].SaldiereBuchungen();
+              if (salden != null) {
+                string hf = salden.Kosten_Hauptforderung.ToString("#0.00");
+                fieldSet[43] = hf;
+                string zns = salden.Kosten_Zinsen.ToString("#0.00");
+                fieldSet[47] = zns;
+                string kosten = salden.Kosten_Unverzinst.ToString("#0.00");
+                fieldSet[50] = kosten;
+              } else {
+                Console.WriteLine($"Fehler beim Saldieren Akt {aktId} csvCount: {csvCounter}");
+
+              }
+
+            } catch (Exception e) {
+              Console.WriteLine($"Exception Fehler beim Saldieren Akt {aktId} csvCount: {csvCounter}");
+            }
+
+          } else {
+            Console.WriteLine($"Akt {aktId} NICHT GEFUNDEN");
+          }
+        }
       }
+      Console.WriteLine($"Anzahl Akte in CSV-File: {csvCounter}");
+      Console.WriteLine("LESEN CSV FERTIG");
+      subitoMgr.WriteFile(Path.Combine(Config.BasePath, @"New_export.csv"));
+      Console.WriteLine("Schreiben CSV FERTIG");
 
 
     } //end     static void Main(string[] args)

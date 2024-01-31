@@ -18,7 +18,7 @@ namespace Splitbuchungen_Auflösen.Startup
       ContainerBuilder builder = new ContainerBuilder();
       builder.RegisterType<ConfigProvider>().As<IConfigProvider>().SingleInstance();
       builder.RegisterType<Ikaros_Xlsx_Reader>().As<IXlsx_Reader>().SingleInstance();
-
+      builder.RegisterType<Subito_Csv_Manager>().As<ISubito_Csv_Manager>().SingleInstance();
 
       return builder.Build();
     }

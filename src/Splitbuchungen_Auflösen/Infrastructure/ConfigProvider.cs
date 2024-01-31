@@ -9,7 +9,7 @@ namespace Splitbuchungen_Auflösen.Infrastructure
 {
   public class ConfigProvider : IConfigProvider
   {
-    public string BasePath => @"H:\mdc\Kunden\AVS\Software\Ikaros_Tools\daten";
+    public string BasePath => @"H:\mdc\Kunden\AVS\Software\Ikaros_Tools\daten\Abschlusstest";
 
   } //end   public class ConfigProvider : IConfigProvider
 

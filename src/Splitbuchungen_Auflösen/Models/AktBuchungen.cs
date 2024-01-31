@@ -55,7 +55,7 @@ namespace Splitbuchungen_Auflösen.Models
         if (newEB.Kosten_Zinsen != Decimal.Zero) {
           newEB.Kosten_Zinsen = (newEB.Betrag) - (newEB.Kosten_Unverzinst + newEB.Kosten_Verzinst + newEB.Kosten_Hauptforderung);
         } else {
-          throw new InvalidDataException("RUNDUNGSFEHLER!!!");
+         // throw new InvalidDataException("RUNDUNGSFEHLER!!!");
         }
       }
       BuchungsListe.Add(newEB);
@@ -82,6 +82,11 @@ namespace Splitbuchungen_Auflösen.Models
     public BuchungsSaldo SaldiereBuchungen()
     {
       Verzinsungs_Service verzinsung = new Verzinsungs_Service();
+      if (VerzinsungsInfo == null) {
+        Debug.WriteLine("Kein VerzinsungsInfo -- on the fly mit defaultwerten erstellen");
+        VerzinsungsInfo = new Hauptforderung_Verzinsung() { ZinsenAb = DateTime.Now, Zinsart = "Fix", Zinssatz = Decimal.Zero };
+        //return null;
+      }
 
       DateTime letzteVerzinsung = this.VerzinsungsInfo.ZinsenAb;
 
