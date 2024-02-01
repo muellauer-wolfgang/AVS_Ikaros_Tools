@@ -33,7 +33,7 @@ namespace Splitbuchungen_Auflösen_UnitTests.Services
       };
       int sut_KompentsationsTage;
 
-      Type verzinserType = typeof(Verzinsungs_Service);
+      Type verzinserType = typeof(Verzinsungs_Service_Lokal);
       object verzinserInstance = Activator.CreateInstance(verzinserType);
       MethodInfo verzinserMethod = verzinserType.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
         .Where(x => x.Name == "Calculate_Kompensationstage" && x.IsPrivate)

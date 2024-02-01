@@ -6,16 +6,17 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using System.Xml;
+using Splitbuchungen_Auflösen.DataServices.Interfaces;
 
 namespace Splitbuchungen_Auflösen.DataServices
 {
 
   /// <summary>
-  /// Diese Klasse ist ein dummer Spike, mit dem ich auf ganz einfache
-  /// Weise Verbindung mit der SQL_Anywhere Datenbank aufbauen will.
-  /// Mal sehen, ob ich das so hinrotzen kann....
+  /// Diese Klasse ist eine einfach Facade in den SQL Anywhere 
+  /// Server, wo es eine embedded Java Procedure für das Berechnen
+  /// von Zinsen gibt. 
   /// </summary>
-  public class SQL_Anywhere_Service : IDisposable
+  public class SQL_Anywhere_Service : IDisposable, ISQL_Anywhere_Service
   {
     private OdbcConnection _connection;
 
@@ -40,7 +41,7 @@ namespace Splitbuchungen_Auflösen.DataServices
       }
       using (OdbcCommand cmd = new OdbcCommand(query, _connection)) {
         using (OdbcDataReader reader = cmd.ExecuteReader()) {
-          if (reader.Read()) { 
+          if (reader.Read()) {
             decimal zinsen = reader.GetDecimal(0);
             return zinsen;
           } else {
@@ -50,31 +51,6 @@ namespace Splitbuchungen_Auflösen.DataServices
         }
       }
     }
-
- /*
-  * using (OdbcConnection connection = new OdbcConnection("DSN=IKAROS-VM")) {
-        string sqlQuery = """
-          SELECT berechneZins(4873.25,4.38,'2016-09-20','2018-04-17')
-          FROM Akte a
-          JOIN Vorgang v ON v.Akte_ID = a.Akte_ID
-          JOIN VgVorlage vv ON vv.VgVorl_ID = v.VgVorl_ID
-          JOIN Kontakt k ON k.Kontakt_ID = a.Schuldner_ID
-          JOIN Zinsen z ON z.Vg_ID = v.Vg_ID
-          WHERE 
-          a.Az = 20160012675
-          AND v.Variante NOT IN ('E','F')
-          """;
-        OdbcCommand command = new OdbcCommand(sqlQuery, connection);
-        connection.Open();
-        OdbcDataReader reader = command.ExecuteReader();
-        if (reader.Read()) {
-          double z = reader.GetDouble(0);
-        }
-        reader.Close();
-        command.Dispose();
-      }
-    }
- */
 
     public void Dispose()
     {

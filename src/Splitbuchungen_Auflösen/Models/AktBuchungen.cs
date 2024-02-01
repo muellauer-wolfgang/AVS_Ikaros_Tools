@@ -8,7 +8,7 @@ using Splitbuchungen_Auflösen.Services;
 using Splitbuchungen_Auflösen;
 using System.ComponentModel;
 using Autofac;
-using Splitbuchungen_Auflösen.DataServices;
+using Splitbuchungen_Auflösen.Services.Interfaces;
 
 namespace Splitbuchungen_Auflösen.Models
 {
@@ -20,13 +20,15 @@ namespace Splitbuchungen_Auflösen.Models
   /// </summary>
   public class AktBuchungen
   {
+    private IVerzinsungs_Service _zinsenSVC;
     public string Aktenzeichen { get; set; }
     public List<Einzelbuchung> BuchungsListe { get; private set; }
     public Hauptforderung_Verzinsung VerzinsungsInfo { get; private set; }
-    public AktBuchungen()
+    public AktBuchungen(IVerzinsungs_Service zinsenSVC)
     {
       BuchungsListe = new();
       VerzinsungsInfo = null;
+      _zinsenSVC = zinsenSVC; 
     }
 
     /// <summary>
@@ -85,7 +87,6 @@ namespace Splitbuchungen_Auflösen.Models
 
     public BuchungsSaldo SaldiereBuchungen()
     {
-      Verzinsungs_Service verzinsung = new Verzinsungs_Service( Splitbuchungen_Auflösen.Program.Container.Resolve<SQL_Anywhere_Service>());
       if (VerzinsungsInfo == null) {
         Debug.WriteLine("Kein VerzinsungsInfo -- on the fly mit defaultwerten erstellen");
         VerzinsungsInfo = new Hauptforderung_Verzinsung() { ZinsenAb = DateTime.Now, Zinsart = "Fix", Zinssatz = Decimal.Zero };
@@ -98,7 +99,7 @@ namespace Splitbuchungen_Auflösen.Models
       foreach (Einzelbuchung eb in this.BuchungsListe) {
         if (eb.Kosten_Zinsen < Decimal.Zero) {
           Debug.WriteLine("TriggerWarnung");
-          List<Einzelbuchung> zns = verzinsung.Calculate_Zinsen(saldo.Kosten_Hauptforderung, letzteVerzinsung, eb.Valutadatum, VerzinsungsInfo);
+          List<Einzelbuchung> zns = _zinsenSVC.Calculate_Zinsen(saldo.Kosten_Hauptforderung, letzteVerzinsung, eb.Valutadatum, VerzinsungsInfo);
           decimal zinsenBelastung = decimal.Zero;
           foreach(Einzelbuchung e in zns) {
             zinsenBelastung += e.Kosten_Zinsen;
@@ -179,7 +180,6 @@ namespace Splitbuchungen_Auflösen.Models
     public Hauptforderung_Verzinsung() { }
 
   }
-
 
   public class BuchungsSaldo
   {

@@ -25,7 +25,7 @@ namespace Splitbuchungen_Auflösen_UnitTests.Services
     public void Instantiate_Class_with_private_Methods()
     {
       //Arrange
-      Type   verzinserType = typeof(Verzinsungs_Service);
+      Type   verzinserType = typeof(Verzinsungs_Service_Lokal);
       object verzinserInstance = Activator.CreateInstance(verzinserType);
       MethodInfo verzinserMethod = verzinserType.GetMethods(BindingFlags.NonPublic | BindingFlags.Instance)
         .Where(x => x.Name == "Intervall_in_zwei_Zinsperioden" && x.IsPrivate)

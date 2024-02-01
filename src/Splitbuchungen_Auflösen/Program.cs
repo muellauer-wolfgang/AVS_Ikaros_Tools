@@ -31,7 +31,7 @@ namespace Splitbuchungen_Auflösen
           Console.WriteLine($"Anzahl Records gelesen: {counter}");
         }
         if (!buchungsDict.ContainsKey(dto.Aktenzeichen)) {
-          buchungsDict.Add(dto.Aktenzeichen, new AktBuchungen());
+          buchungsDict.Add(dto.Aktenzeichen, new AktBuchungen(Container.Resolve<IVerzinsungs_Service>()));
         }
         buchungsDict[dto.Aktenzeichen].Add_Einzelbuchung(dto);
         //Console.WriteLine(dto.ToString());
