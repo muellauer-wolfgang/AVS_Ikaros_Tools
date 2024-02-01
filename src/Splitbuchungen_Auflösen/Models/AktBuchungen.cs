@@ -5,6 +5,10 @@ using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
 using Splitbuchungen_Auflösen.Services;
+using Splitbuchungen_Auflösen;
+using System.ComponentModel;
+using Autofac;
+using Splitbuchungen_Auflösen.DataServices;
 
 namespace Splitbuchungen_Auflösen.Models
 {
@@ -81,7 +85,7 @@ namespace Splitbuchungen_Auflösen.Models
 
     public BuchungsSaldo SaldiereBuchungen()
     {
-      Verzinsungs_Service verzinsung = new Verzinsungs_Service();
+      Verzinsungs_Service verzinsung = new Verzinsungs_Service( Splitbuchungen_Auflösen.Program.Container.Resolve<SQL_Anywhere_Service>());
       if (VerzinsungsInfo == null) {
         Debug.WriteLine("Kein VerzinsungsInfo -- on the fly mit defaultwerten erstellen");
         VerzinsungsInfo = new Hauptforderung_Verzinsung() { ZinsenAb = DateTime.Now, Zinsart = "Fix", Zinssatz = Decimal.Zero };

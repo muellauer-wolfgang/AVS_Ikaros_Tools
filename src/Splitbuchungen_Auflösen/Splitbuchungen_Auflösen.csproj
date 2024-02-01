@@ -10,7 +10,14 @@
   <ItemGroup>
     <PackageReference Include="Autofac" Version="8.0.0" />
     <PackageReference Include="Syncfusion.XlsIO.Net.Core" Version="24.1.47" />
+    <PackageReference Include="System.Data.Odbc" Version="8.0.0" />
     <PackageReference Include="System.Text.Encoding" Version="4.3.0" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Reference Include="Sap.Data.SQLAnywhere.Core.v2.1">
+      <HintPath>C:\Program Files\SQL Anywhere 17\Assembly\Core2.1\Sap.Data.SQLAnywhere.Core.v2.1.dll</HintPath>
+    </Reference>
   </ItemGroup>
 
 </Project>

@@ -1,10 +1,10 @@
 ﻿using Autofac;
+using Syncfusion.XlsIO.FormatParser.FormatTokens;
 using Splitbuchungen_Auflösen.Startup;
 using Splitbuchungen_Auflösen.Infrastructure.Interfaces;
 using Splitbuchungen_Auflösen.Services.Interfaces;
 using Splitbuchungen_Auflösen.Models;
-using Syncfusion.XlsIO.FormatParser.FormatTokens;
-
+using Splitbuchungen_Auflösen.DataServices;
 namespace Splitbuchungen_Auflösen
 {
   internal class Program

@@ -5,6 +5,7 @@ using System.Reflection;
 using System.Text;
 using System.Threading.Tasks;
 using Splitbuchungen_Auflösen.Models;
+using Splitbuchungen_Auflösen.DataServices;
 
 namespace Splitbuchungen_Auflösen.Services
 {
@@ -13,6 +14,13 @@ namespace Splitbuchungen_Auflösen.Services
     private static List<OenbBasiszinssatz> _zinssatzTabelle;
     private static HashSet<int> _monate_31_tage;
     private static HashSet<int> _monate_30_tage;
+    private static SQL_Anywhere_Service _db;
+
+    public Verzinsungs_Service(SQL_Anywhere_Service db)
+    {
+      _db = db;
+    }
+
 
     /// <summary>
     /// Diese Methode errechnet die Zinsbelastung für dieses Kapital von bis und
@@ -29,9 +37,9 @@ namespace Splitbuchungen_Auflösen.Services
       List<Einzelbuchung> zinsbelastungen = new();
       //Kontrolle Plausibilität der Parameter
       if (betrag <= decimal.Zero) { return zinsbelastungen; }
-      if (von >= bis) { return zinsbelastungen; } 
+      if (von >= bis) { return zinsbelastungen; }
 
-      if (Intervall_in_zwei_Zinsperioden(von, bis) == false ) {
+      if (Intervall_in_zwei_Zinsperioden(von, bis) == false) {
         //normale Zinsberechnung, alles in einer Periode
         decimal effektiveZinsen;
         int kompensationstage = Calculate_Kompensationstage(von, bis);
@@ -44,9 +52,15 @@ namespace Splitbuchungen_Auflösen.Services
         } else {
           effektiveZinsen = 5M;
         }
-        TimeSpan diffInDays = bis - von;
-        decimal zinstage = new decimal(diffInDays.TotalDays) + 1M;
-        decimal zinsenInMoney = betrag * (effektiveZinsen / 100M)  * (zinstage / 360M);
+
+
+        //TimeSpan diffInDays = bis - von;
+        //decimal zinstage = new decimal(diffInDays.TotalDays) + 1M;
+        decimal zinsenInMoney; // = betrag * (effektiveZinsen / 100M)  * (zinstage / 360M);
+
+        zinsenInMoney = _db.CalcZinsen(betrag, effektiveZinsen, von, bis);
+        
+        
         Einzelbuchung ebZinsenbelastung = new Einzelbuchung {
           Valutadatum = bis,
           Kürzel = "K0099",
@@ -86,11 +100,11 @@ namespace Splitbuchungen_Auflösen.Services
       int abstandInJahren = bis.Year - von.Year;
       if (abstandInJahren >= 2) {
         kompensation -= abstandInJahren * 12;
-      } else if (abstandInJahren < 1 ) {
+      } else if (abstandInJahren < 1) {
         if (!_monate_30_tage.Contains(von.Month)) {
-          kompensation --;
+          kompensation--;
         }
-      }  else  {
+      } else {
         DateTime datumLaufend = new DateTime(von.Year, von.Month, 1);
         DateTime enddatum = new DateTime(bis.Year, bis.Month, 1);
         while (datumLaufend < enddatum) {
@@ -103,11 +117,9 @@ namespace Splitbuchungen_Auflösen.Services
       return kompensation;
     }
 
-
-
     private bool Intervall_in_zwei_Zinsperioden(DateTime von, DateTime bis)
     {
-      foreach(OenbBasiszinssatz z in _zinssatzTabelle) {
+      foreach (OenbBasiszinssatz z in _zinssatzTabelle) {
         if (von < z.Stichtag && z.Stichtag < bis) {
           return true;
         }
@@ -135,7 +147,7 @@ namespace Splitbuchungen_Auflösen.Services
       return _zinssatzTabelle.Last();
     }
 
-    static  Verzinsungs_Service()
+    static Verzinsungs_Service()
     {
       _zinssatzTabelle = new List<OenbBasiszinssatz> {
         new OenbBasiszinssatz(1970, 01, 01, 5.00M),
