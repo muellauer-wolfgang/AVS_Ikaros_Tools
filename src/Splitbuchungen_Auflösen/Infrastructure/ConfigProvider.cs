@@ -3,16 +3,29 @@ using System.Collections.Generic;
 using System.Linq;
 using System.Text;
 using System.Threading.Tasks;
+
 using Splitbuchungen_Auflösen.Infrastructure.Interfaces;
 
 namespace Splitbuchungen_Auflösen.Infrastructure
 {
   public class ConfigProvider : IConfigProvider
   {
+
+    /*
+        public string BasePath => @"H:\mdc\Kunden\AVS\Software\Ikaros_Tools\daten\Test_4_Spike";
+        public string Infile_Buchungen => @"IKAROS-Export-20160012675.xlsx";
+        public string Infile_4_Subito => @"IKAROS-Import-20160012675.csv";
+        public string Outfile_4_Subito => @"IKAROS-Import-20160012675_MODIFIED.csv";
+    */
+
     public string BasePath => @"H:\mdc\Kunden\AVS\Software\Ikaros_Tools\daten\Abschlusstest";
+    public string Infile_Buchungen => @"IKAROS-Export.xlsx";
+    public string Infile_4_Subito => @"IKAROS-Akten.csv";
+    public string Outfile_4_Subito => @"IKAROS-Akten_MODIFIED.csv";
+
+
 
   } //end   public class ConfigProvider : IConfigProvider
-
 
 } //end namespace Splitbuchungen_Auflösen.Infrastructure
 

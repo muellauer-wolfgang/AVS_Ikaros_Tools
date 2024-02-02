@@ -9,6 +9,7 @@ namespace Splitbuchungen_Auflösen.Services.Interfaces
   public interface ISubito_Csv_Manager
   {
     bool ReadFile(string filename);
+    int Find_Column_by_Name(string name);
     IEnumerable<string[]> EnumerateRecords();
     bool WriteFile(string filename);
   }

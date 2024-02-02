@@ -9,6 +9,10 @@ namespace Splitbuchungen_Auflösen.Infrastructure.Interfaces
   public interface IConfigProvider
   {
     string BasePath { get; }
+    string Infile_Buchungen {  get; }
+    string Infile_4_Subito { get; } 
+    string Outfile_4_Subito { get; }
+
   }
 
 } //end namespace Splitbuchungen_Auflösen.Infrastructure.Interfaces

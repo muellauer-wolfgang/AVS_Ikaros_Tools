@@ -9,7 +9,7 @@ namespace Splitbuchungen_Auflösen.Services.Interfaces
 {
   public interface IXlsx_Reader
   {
-    IEnumerable<string> Retrieve_FirstColumn(string filename);
+    int Find_Column_by_Name(string name);
     IEnumerable<Akt_Einzelbuchung_DTO> Retrieve_Buchungen(string filename);    
 
   } //end   public interface IXlsx_Reader

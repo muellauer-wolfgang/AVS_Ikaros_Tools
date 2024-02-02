@@ -87,6 +87,8 @@ namespace Splitbuchungen_Auflösen.Models
 
     public BuchungsSaldo SaldiereBuchungen()
     {
+      DateTime letzeZahlung = DateTime.MinValue;
+
       if (VerzinsungsInfo == null) {
         Debug.WriteLine("Kein VerzinsungsInfo -- on the fly mit defaultwerten erstellen");
         VerzinsungsInfo = new Hauptforderung_Verzinsung() { ZinsenAb = DateTime.Now, Zinsart = "Fix", Zinssatz = Decimal.Zero };
@@ -94,9 +96,12 @@ namespace Splitbuchungen_Auflösen.Models
       }
 
       DateTime letzteVerzinsung = this.VerzinsungsInfo.ZinsenAb;
-
       BuchungsSaldo saldo = new();
       foreach (Einzelbuchung eb in this.BuchungsListe) {
+        //kontrolle ob Zahlung, und wenn ja datum aktualisieren
+        if (eb.Kürzel.StartsWith("Z001")) {
+          letzeZahlung = letzeZahlung >  eb.Valutadatum ? letzeZahlung : eb.Valutadatum; 
+        }
         if (eb.Kosten_Zinsen < Decimal.Zero) {
           Debug.WriteLine("TriggerWarnung");
           List<Einzelbuchung> zns = _zinsenSVC.Calculate_Zinsen(saldo.Kosten_Hauptforderung, letzteVerzinsung, eb.Valutadatum, VerzinsungsInfo);
@@ -107,12 +112,33 @@ namespace Splitbuchungen_Auflösen.Models
           //setzen des neuen Datums und belasten der Zinsen
           letzteVerzinsung = eb.Valutadatum.AddDays(1);
           saldo.Kosten_Zinsen += zinsenBelastung;
+          saldo.Betrag += zinsenBelastung;
         }
         saldo.Betrag += eb.Betrag;
         saldo.Kosten_Verzinst += eb.Kosten_Verzinst;
         saldo.Kosten_Unverzinst += eb.Kosten_Unverzinst;
         saldo.Kosten_Zinsen += eb.Kosten_Zinsen;
         saldo.Kosten_Hauptforderung += eb.Kosten_Hauptforderung;
+      }
+      //jetzt bin ich fast fertig, ich muss nur noch die Zinsen ab der letzten 
+      //verzinsung berechnen und zu den Zinsen addieren
+      if (letzteVerzinsung < DateTime.Now) {
+        //nachverzinsen
+        List<Einzelbuchung> zns = _zinsenSVC.Calculate_Zinsen(
+          saldo.Kosten_Hauptforderung,
+          letzteVerzinsung,
+          DateTime.Now,
+          VerzinsungsInfo);
+        foreach(Einzelbuchung zeb in zns) {
+          saldo.Kosten_Zinsen += zeb.Kosten_Zinsen;
+          saldo.Betrag += zeb.Kosten_Zinsen;
+        }
+      }
+      saldo.Letzte_Zahlung = letzeZahlung;
+      //Kontrolle, warum da letze zahlungen von jetzt kommen:
+      if (letzeZahlung > DateTime.Now.AddMinutes(-10)) {
+        Debug.Write("Trigger");
+
       }
       return saldo;
     }
@@ -188,6 +214,7 @@ namespace Splitbuchungen_Auflösen.Models
     public decimal Kosten_Unverzinst { get; set; }
     public decimal Kosten_Zinsen { get; set; }
     public decimal Kosten_Hauptforderung { get; set; }
+    public DateTime Letzte_Zahlung { get; set; }
 
     public override string ToString()
     {
