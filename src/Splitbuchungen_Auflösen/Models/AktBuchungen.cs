@@ -83,6 +83,10 @@ namespace Splitbuchungen_Auflösen.Models
       DateTime letzeZahlung = DateTime.MinValue;
       DateTime letzteVerzinsung = this.Get_Datum_erste_Transaktion().AddDays(1);
       BuchungsSaldo saldo = new(this.BuchungsListe);
+      if (!string.IsNullOrEmpty(Aktenzeichen) && Aktenzeichen.Equals("2023000326")) {
+        Debug.WriteLine("Trigger");
+
+      }
 
       foreach (Einzelbuchung eb in this.BuchungsListe) {
         //Wenn die einzelne Beträge 0 sind, dann gleich weiter
@@ -92,12 +96,17 @@ namespace Splitbuchungen_Auflösen.Models
         if (eb.Valutadatum == new DateTime(2012, 01, 03)) {
           Debug.WriteLine("Trigger");
         }
-
         //bei Akten mit Sub-Akt gibt es wohl alle Zahlungen mehrfach, 
         //ich schmeisse mal die ZU Buchungen weg..
         if (eb.Kürzel.Equals("ZU")) {
           continue;
         }
+        //Erkennen der Buchungen für Spesen Auftraggeber gesondert saldieren
+        if (eb.Kürzel.Equals("K0003") &&  eb.Kurztext.Contains("Auftraggeber")) {
+          saldo.Spesen_Auftraggeber += eb.Kosten_Unverzinslich;
+          Debug.WriteLine("Spesen Auftraggeber");
+        }
+
         if (eb.Zinsen < Decimal.Zero) {
           Debug.WriteLine("TriggerWarnung");
           List<Einzelbuchung> zns = _verzingsungsSvc.Calculate_Zinsen(

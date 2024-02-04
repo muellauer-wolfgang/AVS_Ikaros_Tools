@@ -6,6 +6,7 @@ using Splitbuchungen_Auflösen.Services.Interfaces;
 using Splitbuchungen_Auflösen.Models;
 using Splitbuchungen_Auflösen.DataServices;
 using System.Text;
+using System.Diagnostics;
 namespace Splitbuchungen_Auflösen
 {
   internal class Program
@@ -57,19 +58,33 @@ namespace Splitbuchungen_Auflösen
         }
         string aktId = fieldSet[subitoMgr.Find_Column_by_Name("Stamm-ID")];    // 0
         if (!string.IsNullOrEmpty(aktId)) {
+
+          if (!string.IsNullOrEmpty(aktId) && aktId.Equals("2023000326")) {
+            Debug.WriteLine("Trigger");
+
+          }
+
+
+
           //Kosten darf ich nur auf Haupt-Akte buchen, das sind Akte, wo im Feld
           //Schuldnernummer 0 steht. Auf den nicht 0 nummern sind die Koste nimmer 0
           if (fieldSet[subitoMgr.Find_Column_by_Name("Schuldnernummer")] !="0") {
             fieldSet[subitoMgr.Find_Column_by_Name("Hauptforderung")] = "0,00";
             fieldSet[subitoMgr.Find_Column_by_Name("Zinsen")] = "0,00";
             fieldSet[subitoMgr.Find_Column_by_Name("Kosten")] = "0,00";
+            fieldSet[subitoMgr.Find_Column_by_Name("Kosten 2 Betrag")] = "0,00";
             fieldSet[subitoMgr.Find_Column_by_Name("Zinssatz ab")] = DateTime.Now.ToString("dd.MM.yyyy");
+            fieldSet[subitoMgr.Find_Column_by_Name("Kostenzins ab")] = DateTime.Now.ToString("dd.MM.yyyy");
+            fieldSet[subitoMgr.Find_Column_by_Name("Verrechnung ab")] = DateTime.Now.ToString("dd.MM.yyyy");
+            fieldSet[subitoMgr.Find_Column_by_Name("Valuta")] = DateTime.Now.ToString("dd.MM.yyyy");
+            fieldSet[subitoMgr.Find_Column_by_Name("Abweichendes Übergabedatum")] = DateTime.Now.ToString("dd.MM.yyyy");
           } else {
             if (buchungsDict.ContainsKey(aktId)) {
               try {
+                AktBuchungen b = buchungsDict[aktId];
                 BuchungsSaldo salden = buchungsDict[aktId].SaldiereBuchungen();
                 if (salden.Letzte_Zahlung_Am > DateTime.Now.AddDays(-90)) {
-                  string infoMessage = $"Akiver Akt ID:{aktId} letzte Zahlung: {salden.Letzte_Zahlung_Am:yyyy-MM-dd}";
+                  string infoMessage = $"Aktiver Akt ID:{aktId} letzte Zahlung: {salden.Letzte_Zahlung_Am:yyyy-MM-dd}";
                   Console.WriteLine(infoMessage);
                   _aktiveAkten.AppendLine(infoMessage);
                 }
@@ -86,13 +101,26 @@ namespace Splitbuchungen_Auflösen
                     salden.Zinsen = Math.Abs(salden.Zinsen);
                     salden.Kosten_Unverzinslich = Math.Abs(salden.Kosten_Unverzinslich);
                   }
-                  string hf = salden.Zinsen.ToString("#0.00");
+                  string hf = salden.Hauptforderung.ToString("#0.00");
                   fieldSet[subitoMgr.Find_Column_by_Name("Hauptforderung")] = hf;
                   string zns = salden.Zinsen.ToString("#0.00");
-                  fieldSet[subitoMgr.Find_Column_by_Name("Zinsen")] = zns;  //47
-                  string kosten = salden.Kosten_Unverzinslich.ToString("#0.00");
-                  fieldSet[subitoMgr.Find_Column_by_Name("Kosten")] = kosten;   //50
+                  fieldSet[subitoMgr.Find_Column_by_Name("Zinsen")] = zns;
+                  string kosten;
+                  string kostenAG;
+                  if (salden.Kosten_Unverzinslich > salden.Spesen_Auftraggeber) {
+                    kosten = (salden.Kosten_Unverzinslich - salden.Spesen_Auftraggeber).ToString("#0.00");
+                    kostenAG = salden.Spesen_Auftraggeber.ToString("#0.00");
+                  } else {
+                    kosten = salden.Kosten_Unverzinslich.ToString("#0.00");
+                    kostenAG = "0,00";
+                  }
+                  fieldSet[subitoMgr.Find_Column_by_Name("Kosten")] = kostenAG;  
+                  fieldSet[subitoMgr.Find_Column_by_Name("Kosten 2 Betrag")] = kosten;
                   fieldSet[subitoMgr.Find_Column_by_Name("Zinssatz ab")] = DateTime.Now.ToString("dd.MM.yyyy");
+                  fieldSet[subitoMgr.Find_Column_by_Name("Kostenzins ab")] = DateTime.Now.ToString("dd.MM.yyyy");
+                  fieldSet[subitoMgr.Find_Column_by_Name("Verrechnung ab")] = DateTime.Now.ToString("dd.MM.yyyy");
+                  fieldSet[subitoMgr.Find_Column_by_Name("Valuta")] = DateTime.Now.ToString("dd.MM.yyyy");
+                  fieldSet[subitoMgr.Find_Column_by_Name("Abweichendes Übergabedatum")] = DateTime.Now.ToString("dd.MM.yyyy");
                 } else {
                   Console.WriteLine($"Fehler beim Saldieren Akt {aktId} csvCount: {csvCounter}");
                 }
