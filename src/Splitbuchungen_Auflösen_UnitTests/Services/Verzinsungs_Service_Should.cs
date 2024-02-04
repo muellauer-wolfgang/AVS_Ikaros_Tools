@@ -19,7 +19,7 @@ namespace Splitbuchungen_Auflösen_UnitTests.Services
     public void Calculate_Zinsen_01()
     {
       IVerzinsungs_Service zinsenSvz = new Verzinsungs_Service_Lokal();
-      Hauptforderung_Verzinsung zinsInfo = new Hauptforderung_Verzinsung {
+      Verzinsung zinsInfo = new Verzinsung {
         Forderungsanteil = 1, Forderungsart = "H", Zinsart = "Basis",
         ZinsenAb = DateTime.Now, Zinssatz = 5M
       };
@@ -30,15 +30,15 @@ namespace Splitbuchungen_Auflösen_UnitTests.Services
         zinsInfo);
       Assert.NotNull(sutZinsbuchungsliste);
       Assert.Equal(1, sutZinsbuchungsliste.Count());
-      Assert.True(340.0M < sutZinsbuchungsliste[0].Kosten_Zinsen, "Intervall passt nicht");
-      Assert.True(342.0M > sutZinsbuchungsliste[0].Kosten_Zinsen, "Intervall passt nicht");
+      Assert.True(340.0M < sutZinsbuchungsliste[0].Zinsen, "Intervall passt nicht");
+      Assert.True(342.0M > sutZinsbuchungsliste[0].Zinsen, "Intervall passt nicht");
     }
 
     [Fact]
     public void Calculate_Zinsen_02()
     {
       IVerzinsungs_Service zinsenSvz = new Verzinsungs_Service_Lokal();
-      Hauptforderung_Verzinsung zinsInfo = new Hauptforderung_Verzinsung {
+      Verzinsung zinsInfo = new Verzinsung {
         Forderungsanteil = 1, Forderungsart = "H", Zinsart = "Basis",
         ZinsenAb = DateTime.Now, Zinssatz = 5M
       };
@@ -49,15 +49,15 @@ namespace Splitbuchungen_Auflösen_UnitTests.Services
         zinsInfo);
       Assert.NotNull(sutZinsbuchungsliste);
       Assert.Equal(1, sutZinsbuchungsliste.Count());
-      Assert.True(16.0M < sutZinsbuchungsliste[0].Kosten_Zinsen, "Intervall passt nicht");
-      Assert.True(18.0M > sutZinsbuchungsliste[0].Kosten_Zinsen, "Intervall passt nicht");
+      Assert.True(16.0M < sutZinsbuchungsliste[0].Zinsen, "Intervall passt nicht");
+      Assert.True(18.0M > sutZinsbuchungsliste[0].Zinsen, "Intervall passt nicht");
     }
 
     [Fact]
     public void Calculate_Zinsen_03()
     {
       IVerzinsungs_Service zinsenSvz = new Verzinsungs_Service_Lokal();
-      Hauptforderung_Verzinsung zinsInfo = new Hauptforderung_Verzinsung {
+      Verzinsung zinsInfo = new Verzinsung {
         Forderungsanteil = 1, Forderungsart = "H", Zinsart = "Basis",
         ZinsenAb = DateTime.Now, Zinssatz = 5M
       };
@@ -68,15 +68,15 @@ namespace Splitbuchungen_Auflösen_UnitTests.Services
         zinsInfo);
       Assert.NotNull(sutZinsbuchungsliste);
       Assert.Equal(1, sutZinsbuchungsliste.Count());
-      Assert.True(16.0M < sutZinsbuchungsliste[0].Kosten_Zinsen, "Intervall passt nicht");
-      Assert.True(19.0M > sutZinsbuchungsliste[0].Kosten_Zinsen, "Intervall passt nicht");
+      Assert.True(16.0M < sutZinsbuchungsliste[0].Zinsen, "Intervall passt nicht");
+      Assert.True(19.0M > sutZinsbuchungsliste[0].Zinsen, "Intervall passt nicht");
     }
 
     [Fact]
     public void Calculate_Zinsen_04()
     {
       IVerzinsungs_Service zinsenSvz = new Verzinsungs_Service_Lokal();
-      Hauptforderung_Verzinsung zinsInfo = new Hauptforderung_Verzinsung {
+      Verzinsung zinsInfo = new Verzinsung {
         Forderungsanteil = 1, Forderungsart = "H", Zinsart = "Basis",
         ZinsenAb = DateTime.Now, Zinssatz = 5M
       };
@@ -87,8 +87,8 @@ namespace Splitbuchungen_Auflösen_UnitTests.Services
         zinsInfo);
       Assert.NotNull(sutZinsbuchungsliste);
       Assert.Equal(1, sutZinsbuchungsliste.Count());
-      Assert.True(126.0M < sutZinsbuchungsliste[0].Kosten_Zinsen, "Intervall passt nicht");
-      Assert.True(129.0M > sutZinsbuchungsliste[0].Kosten_Zinsen, "Intervall passt nicht");
+      Assert.True(126.0M < sutZinsbuchungsliste[0].Zinsen, "Intervall passt nicht");
+      Assert.True(129.0M > sutZinsbuchungsliste[0].Zinsen, "Intervall passt nicht");
     }
 
 
@@ -96,7 +96,7 @@ namespace Splitbuchungen_Auflösen_UnitTests.Services
     public void Calculate_Zinsen_05()
     {
       IVerzinsungs_Service zinsenSvz = new Verzinsungs_Service_Lokal();
-      Hauptforderung_Verzinsung zinsInfo = new Hauptforderung_Verzinsung {
+      Verzinsung zinsInfo = new Verzinsung {
         Forderungsanteil = 1, Forderungsart = "H", Zinsart = "Basis",
         ZinsenAb = DateTime.Now, Zinssatz = 5M
       };
@@ -105,11 +105,11 @@ namespace Splitbuchungen_Auflösen_UnitTests.Services
         new DateTime(2022, 12, 21),
         new DateTime(2023, 01, 19),
         zinsInfo);
-      decimal s = sutZinsbuchungsliste[0].Kosten_Zinsen + sutZinsbuchungsliste[1].Kosten_Zinsen;
+      decimal s = sutZinsbuchungsliste[0].Zinsen + sutZinsbuchungsliste[1].Zinsen;
       Assert.NotNull(sutZinsbuchungsliste);
       Assert.Equal(2, sutZinsbuchungsliste.Count());
-      Assert.True(19.0M < sutZinsbuchungsliste[0].Kosten_Zinsen + sutZinsbuchungsliste[1].Kosten_Zinsen, "Intervall passt nicht");
-      Assert.True(21.0M > sutZinsbuchungsliste[0].Kosten_Zinsen + sutZinsbuchungsliste[1].Kosten_Zinsen, "Intervall passt nicht");
+      Assert.True(19.0M < sutZinsbuchungsliste[0].Zinsen + sutZinsbuchungsliste[1].Zinsen, "Intervall passt nicht");
+      Assert.True(21.0M > sutZinsbuchungsliste[0].Zinsen + sutZinsbuchungsliste[1].Zinsen, "Intervall passt nicht");
     }
 
 

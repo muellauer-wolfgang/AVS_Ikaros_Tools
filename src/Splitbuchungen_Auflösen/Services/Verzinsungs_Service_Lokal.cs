@@ -20,7 +20,10 @@ namespace Splitbuchungen_Auflösen.Services
     {
     }
 
-
+    public List<Einzelbuchung> Calculate_Zinsen(List<Einzelbuchung> ebList, DateTime von, DateTime bis)
+    {
+      return null;
+    }
     /// <summary>
     /// Diese Methode errechnet die Zinsbelastung für dieses Kapital von bis und
     /// zu den übergebenen Konditionen. Wenn im Intervall ein Sprung in den Zinsen
@@ -31,7 +34,7 @@ namespace Splitbuchungen_Auflösen.Services
     /// <param name="von"></param>
     /// <param name="bis"></param>
     /// <returns></returns>
-    public List<Einzelbuchung> Calculate_Zinsen(decimal betrag, DateTime von, DateTime bis, Hauptforderung_Verzinsung zinsInfo)
+    public List<Einzelbuchung> Calculate_Zinsen(decimal betrag, DateTime von, DateTime bis, Verzinsung zinsInfo)
     {
       List<Einzelbuchung> zinsbelastungen = new();
       //Kontrolle Plausibilität der Parameter
@@ -57,8 +60,8 @@ namespace Splitbuchungen_Auflösen.Services
           Valutadatum = bis,
           Kürzel = "K0099",
           Kurztext  = "Zinsbelastung",
-          Betrag = zinsenInMoney,
-          Kosten_Zinsen = zinsenInMoney
+          Umsatz = zinsenInMoney,
+          Zinsen = zinsenInMoney
         };
         zinsbelastungen.Add(ebZinsenbelastung);
       } else {

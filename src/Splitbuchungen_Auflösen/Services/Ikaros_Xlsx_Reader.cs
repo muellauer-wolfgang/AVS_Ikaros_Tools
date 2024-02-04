@@ -14,6 +14,10 @@ using Splitbuchungen_Auflösen.Models;
 
 namespace Splitbuchungen_Auflösen.Services
 {
+  /// <summary>
+  /// Diese Methode liest DTOs aus dem Excel Sheet mit den relevanten
+  /// Daten der Buchungen.
+  /// </summary>
   public class Ikaros_Xlsx_Reader : IXlsx_Reader
   {
     private IConfigProvider _configProvider;
@@ -36,8 +40,13 @@ namespace Splitbuchungen_Auflösen.Services
       return _columnMapping[name];
     }
 
-
-    public IEnumerable<Akt_Einzelbuchung_DTO> Retrieve_Buchungen(string filename)
+    /// <summary>
+    /// Hier wird das Spreadsheet gelesen und es werden die Einzelbuchungs_DTOs
+    /// ausgespuckt...
+    /// </summary>
+    /// <param name="filename"></param>
+    /// <returns></returns>
+    public IEnumerable<Einzelbuchung_DTO> Retrieve_Buchungen(string filename)
     {
       if (string.IsNullOrEmpty(filename)) { yield break; }
       if (!filename.StartsWith(_configProvider.BasePath)) { filename = Path.Combine(_configProvider.BasePath, filename); }
@@ -56,13 +65,13 @@ namespace Splitbuchungen_Auflösen.Services
         if (rowCount < 2) { yield break; }
         if (colCount < 23) { yield break; }
 
-        //Lesen der Line 1 Columns für Init Dictionary
+        //Lesen der Columns der Zeile 1 für Init Dictionary
         for (int i =1; i <= colCount; i++) {
           _columnMapping[worksheet[1, i].Value] = i;
         }
 
         for (int r = 2; r <= rowCount; r++) {
-          Akt_Einzelbuchung_DTO ebDTO = new Akt_Einzelbuchung_DTO();
+          Einzelbuchung_DTO ebDTO = new Einzelbuchung_DTO();
           ebDTO.Aktenzeichen = worksheet[r, Find_Column_by_Name("Aktenzeichen")].Value;
           if (DateTime.TryParse(worksheet[r, Find_Column_by_Name("Datum")].Value, null, DateTimeStyles.None, out DateTime valutadatum)) {
             ebDTO.Valutadatum = valutadatum;
@@ -72,34 +81,34 @@ namespace Splitbuchungen_Auflösen.Services
           ebDTO.Kürzel = worksheet[r, Find_Column_by_Name("Kürzel")].Value;
           ebDTO.Kurztext = worksheet[r, Find_Column_by_Name("Kurztext")].Value;
           if (decimal.TryParse(worksheet[r, Find_Column_by_Name("Betrag")].Value, NumberStyles.Any, null, out decimal betrag)) {
-            ebDTO.Betrag = betrag;
+            ebDTO.Umsatz = betrag;
           } else {
-            ebDTO.Betrag = decimal.Zero;
+            ebDTO.Umsatz = decimal.Zero;
           }
           if (decimal.TryParse(worksheet[r, Find_Column_by_Name("Kosten_Verzinst")].Value, NumberStyles.Any, null, out decimal kv)) {
-            ebDTO.Kosten_Verzinst = kv;
+            ebDTO.Kosten_Verzinslich = kv;
           } else {
-            ebDTO.Kosten_Verzinst = decimal.Zero;
+            ebDTO.Kosten_Verzinslich = decimal.Zero;
           }
           if (decimal.TryParse(worksheet[r, Find_Column_by_Name("Kosten_Unverzinst")].Value, NumberStyles.Any, null, out decimal ku)) {
-            ebDTO.Kosten_Unverzinst = ku;
+            ebDTO.Kosten_Unverzinslich = ku;
           } else {
-            ebDTO.Kosten_Unverzinst = decimal.Zero;
+            ebDTO.Kosten_Unverzinslich = decimal.Zero;
           }
           if (decimal.TryParse(worksheet[r, Find_Column_by_Name("Kosten_Zinsen")].Value, NumberStyles.Any, null, out decimal kz)) {
-            ebDTO.Kosten_Zinsen = kz;
+            ebDTO.Zinsen = kz;
           } else {
-            ebDTO.Kosten_Zinsen = decimal.Zero;
+            ebDTO.Zinsen = decimal.Zero;
           }
           if (decimal.TryParse(worksheet[r, Find_Column_by_Name("Kosten_Hauptforderung")].Value, NumberStyles.Any, null, out decimal kh)) {
-            ebDTO.Kosten_Hauptforderung = kh;
+            ebDTO.Hauptforderung = kh;
           } else {
-            ebDTO.Kosten_Hauptforderung = decimal.Zero;
+            ebDTO.Hauptforderung = decimal.Zero;
           }
           //jetzt noch kontrollieren, ob ich Verzinsungs-Info finde
           string zinsart = worksheet[r, Find_Column_by_Name("Zinsart")].Value;
           if (!string.IsNullOrEmpty(zinsart)) {
-            Hauptforderung_Verzinsung hfz = new Hauptforderung_Verzinsung();
+            Verzinsung hfz = new Verzinsung();
             hfz.Zinsart = worksheet[r, Find_Column_by_Name("Zinsart")].Value;
             
             if (decimal.TryParse(worksheet[r, Find_Column_by_Name("Zinssatz")].Value, NumberStyles.Any, null, out decimal zinssatz)) {
@@ -128,19 +137,18 @@ namespace Splitbuchungen_Auflösen.Services
               hfz.ZinsenAb = DateTime.MinValue;
             }
             ebDTO.VerzinsungsInfo = hfz;
-          } else {
-            ebDTO.VerzinsungsInfo = null;
-          }
-
+          } 
           //kontrolle, ob es eine wirklich sinnvolle Zeile ist:
           if (string.IsNullOrEmpty(ebDTO.Aktenzeichen)) {
             Debug.WriteLine($"Error in Line {r}");
             continue;
             //ohne Aktenzeichen hat das keinen Sinn
           }
-          if (ebDTO.Kürzel.Equals("H00") && ebDTO.VerzinsungsInfo == null) {
-            Debug.WriteLine("sollte es nicht geben");
-            continue;
+          //wenn es bei Hauptforderung keine ZinsInfo gibt, muss ein Null-Objekt
+          //generiert werden
+          if ((ebDTO.Kürzel.Equals("H00") || ebDTO.Kürzel.Equals("H04")) 
+            && ebDTO.VerzinsungsInfo == null) {
+            ebDTO.VerzinsungsInfo = Verzinsung.NullZinsen();
           }
           yield return ebDTO;
         }

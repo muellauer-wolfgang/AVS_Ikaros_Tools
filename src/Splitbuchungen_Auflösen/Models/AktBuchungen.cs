@@ -20,28 +20,30 @@ namespace Splitbuchungen_Auflösen.Models
   /// </summary>
   public class AktBuchungen
   {
-    private IVerzinsungs_Service _zinsenSVC;
+    private IVerzinsungs_Service _verzingsungsSvc;
     public string Aktenzeichen { get; set; }
     public List<Einzelbuchung> BuchungsListe { get; private set; }
-    public Hauptforderung_Verzinsung VerzinsungsInfo { get; private set; }
     public AktBuchungen(IVerzinsungs_Service zinsenSVC)
     {
       BuchungsListe = new();
-      VerzinsungsInfo = null;
-      _zinsenSVC = zinsenSVC; 
+      _verzingsungsSvc = zinsenSVC; 
     }
 
+/*
     /// <summary>
-    /// Diese Methode trägt eine Buchung in die Liste ein Hierbei ist einiges zu beachten:
-    /// der Betrag ist in der Datenbank immer positiv, das ist aber zum Rechnen nicht
-    /// sinnvoll. Daher muss ich ihn bei Zahlungen invertieren. Dann sind die Zinsen
-    /// nicht korrekt, da ist ein Rundungsfehler. 
+    /// Diese Methode trägt eine Buchung in die Liste ein. Hierbei ist einiges zu beachten:
+    /// der Betrag ist in der IKAROS Datenbank immer positiv, das ist aber zum Rechnen nicht
+    /// sinnvoll. Daher muss ich ihn bei Zahlungen invertieren. 
     /// </summary>
     public void Add_Einzelbuchung(
       DateTime valutadatum,
-      string kürzel, string kurztext,
+      string kürzel, 
+      string kurztext,
       decimal betrag,
-      decimal kostenVerzinst, decimal kostenUnverzinst, decimal kostenZinsen, decimal hauptforderung)
+      decimal kostenVerzinst, 
+      decimal kostenUnverzinst, 
+      decimal kostenZinsen, 
+      decimal hauptforderung)
     {
       Einzelbuchung newEB = new();
       newEB.Valutadatum = valutadatum;
@@ -66,21 +68,12 @@ namespace Splitbuchungen_Auflösen.Models
       }
       BuchungsListe.Add(newEB);
     }
+*/
 
-    public void Add_Einzelbuchung(Akt_Einzelbuchung_DTO dto)
+    public void Add_Einzelbuchung(Einzelbuchung_DTO dto)
     {
-      Add_Einzelbuchung(
-        dto.Valutadatum,
-        dto.Kürzel,
-        dto.Kurztext,
-        dto.Betrag,
-        dto.Kosten_Verzinst,
-        dto.Kosten_Unverzinst,
-        dto.Kosten_Zinsen,
-        dto.Kosten_Hauptforderung);
-      if (dto.VerzinsungsInfo != null) {
-        this.VerzinsungsInfo = dto.VerzinsungsInfo;
-      }
+      BuchungsListe.Add(new Einzelbuchung(dto));
+      BuchungsListe.Sort();
     }
 
 
@@ -88,140 +81,81 @@ namespace Splitbuchungen_Auflösen.Models
     public BuchungsSaldo SaldiereBuchungen()
     {
       DateTime letzeZahlung = DateTime.MinValue;
+      DateTime letzteVerzinsung = this.Get_Datum_erste_Transaktion().AddDays(1);
+      BuchungsSaldo saldo = new(this.BuchungsListe);
 
-      if (VerzinsungsInfo == null) {
-        Debug.WriteLine("Kein VerzinsungsInfo -- on the fly mit defaultwerten erstellen");
-        VerzinsungsInfo = new Hauptforderung_Verzinsung() { ZinsenAb = DateTime.Now, Zinsart = "Fix", Zinssatz = Decimal.Zero };
-        //return null;
-      }
-
-      DateTime letzteVerzinsung = this.VerzinsungsInfo.ZinsenAb;
-      BuchungsSaldo saldo = new();
       foreach (Einzelbuchung eb in this.BuchungsListe) {
-        //kontrolle ob Zahlung, und wenn ja datum aktualisieren
-        if (eb.Kürzel.StartsWith("Z001")) {
-          letzeZahlung = letzeZahlung >  eb.Valutadatum ? letzeZahlung : eb.Valutadatum; 
+        //Wenn die einzelne Beträge 0 sind, dann gleich weiter
+        if (eb.Umsatz == decimal.Zero) {
+          continue;
         }
-        if (eb.Kosten_Zinsen < Decimal.Zero) {
+        if (eb.Valutadatum == new DateTime(2012, 01, 03)) {
+          Debug.WriteLine("Trigger");
+        }
+
+        //bei Akten mit Sub-Akt gibt es wohl alle Zahlungen mehrfach, 
+        //ich schmeisse mal die ZU Buchungen weg..
+        if (eb.Kürzel.Equals("ZU")) {
+          continue;
+        }
+        if (eb.Zinsen < Decimal.Zero) {
           Debug.WriteLine("TriggerWarnung");
-          List<Einzelbuchung> zns = _zinsenSVC.Calculate_Zinsen(saldo.Kosten_Hauptforderung, letzteVerzinsung, eb.Valutadatum, VerzinsungsInfo);
+          List<Einzelbuchung> zns = _verzingsungsSvc.Calculate_Zinsen(
+            saldo.Hauptforderungen_Offen, 
+            letzteVerzinsung.AddDays(1), 
+            eb.Valutadatum);
           decimal zinsenBelastung = decimal.Zero;
           foreach(Einzelbuchung e in zns) {
-            zinsenBelastung += e.Kosten_Zinsen;
+            zinsenBelastung += e.Zinsen;
           }
           //setzen des neuen Datums und belasten der Zinsen
           letzteVerzinsung = eb.Valutadatum.AddDays(1);
-          saldo.Kosten_Zinsen += zinsenBelastung;
-          saldo.Betrag += zinsenBelastung;
+          saldo.Zinsen += zinsenBelastung;
+          saldo.Umsatz += zinsenBelastung;
+
+          //Entscheidung ob Zahlung, und wenn ja DatumletzteZahlung aktualisieren
+          if (eb.Kürzel.StartsWith("Z001")) {
+            letzeZahlung = letzeZahlung >  eb.Valutadatum ? letzeZahlung : eb.Valutadatum;
+          }
+          if (eb.Zinsen != decimal.Zero) {
+            letzteVerzinsung = eb.Valutadatum;
+          }
         }
-        saldo.Betrag += eb.Betrag;
-        saldo.Kosten_Verzinst += eb.Kosten_Verzinst;
-        saldo.Kosten_Unverzinst += eb.Kosten_Unverzinst;
-        saldo.Kosten_Zinsen += eb.Kosten_Zinsen;
-        saldo.Kosten_Hauptforderung += eb.Kosten_Hauptforderung;
+        saldo.Umsatz += eb.Umsatz;
+        saldo.Kosten_Unverzinslich += eb.Kosten_Unverzinslich;
+        saldo.Kosten_Verzinslich += eb.Kosten_Verzinslich;
+        saldo.Zinsen += eb.Zinsen;
+        saldo.Kapital_Buchen(eb.Hauptforderung);
       }
       //jetzt bin ich fast fertig, ich muss nur noch die Zinsen ab der letzten 
       //verzinsung berechnen und zu den Zinsen addieren
       if (letzteVerzinsung < DateTime.Now) {
         //nachverzinsen
-        List<Einzelbuchung> zns = _zinsenSVC.Calculate_Zinsen(
-          saldo.Kosten_Hauptforderung,
+        List<Einzelbuchung> zns = _verzingsungsSvc.Calculate_Zinsen(
+          saldo.Hauptforderungen_Offen,
           letzteVerzinsung,
-          DateTime.Now,
-          VerzinsungsInfo);
+          DateTime.Now);
         foreach(Einzelbuchung zeb in zns) {
-          saldo.Kosten_Zinsen += zeb.Kosten_Zinsen;
-          saldo.Betrag += zeb.Kosten_Zinsen;
+          saldo.Zinsen += zeb.Zinsen;
+          saldo.Umsatz += zeb.Umsatz;
         }
-      }
-      saldo.Letzte_Zahlung = letzeZahlung;
-      //Kontrolle, warum da letze zahlungen von jetzt kommen:
-      if (letzeZahlung > DateTime.Now.AddMinutes(-10)) {
-        Debug.Write("Trigger");
 
       }
+      saldo.Letzte_Zahlung_Am = letzeZahlung;
+
       return saldo;
     }
 
+    private DateTime Get_Datum_erste_Transaktion()
+    {
+      DateTime d = DateTime.MaxValue;
+      foreach(Einzelbuchung e in this.BuchungsListe) {
+        if (d > e.Valutadatum) { d = e.Valutadatum;}
+      }
+      return d;
+    }
+
   } //end    public class AktBuchungen
-
-
-  /// <summary>
-  /// Diese Klasse kapselt eine Einzelbuchung mit den Konten
-  /// KostenVerzinst, KostenUnverzinst, Zinsen, Kapital
-  /// Das Feld Betrag enthält die Gesamtbetrag bie Split
-  /// </summary>
-  public class Einzelbuchung
-  {
-    public DateTime Valutadatum { get; set; }
-    public string Kürzel { get; set; }
-    public string Kurztext { get; set; }
-    public decimal Betrag { get; set; }
-    public decimal Kosten_Verzinst { get; set; }
-    public decimal Kosten_Unverzinst { get; set; }
-    public decimal Kosten_Zinsen { get; set; }
-    public decimal Kosten_Hauptforderung { get; set; }
-
-    public override string ToString()
-    {
-      return $"D:{Valutadatum:yyyy-MM-dd} K:{Kürzel:-6} B:{Betrag:0,000.00} KV{Kosten_Verzinst:0,000.00} KU:{Kosten_Unverzinst:0,000.00} KZ:{Kosten_Zinsen:0,000.00} KH:{Kosten_Hauptforderung:0,000.00}";
-    }
-
-  } //end   public class Einzelbuchung
-
-
-  public class Akt_Einzelbuchung_DTO
-  {
-    public DateTime Valutadatum { get; set; }
-    public string Aktenzeichen { get; set; }
-    public string Kürzel { get; set; }
-    public string Kurztext { get; set; }
-    public decimal Betrag { get; set; }
-    public decimal Kosten_Verzinst { get; set; }
-    public decimal Kosten_Unverzinst { get; set; }
-    public decimal Kosten_Zinsen { get; set; }
-    public decimal Kosten_Hauptforderung { get; set; }
-    public Hauptforderung_Verzinsung VerzinsungsInfo { get; set; }
-
-    public override string ToString()
-    {
-      return $"D:{Valutadatum:yyyy-MM-dd} AZ:{Aktenzeichen:-15} K:{Kürzel:-6} T:{Kurztext} B:{Betrag:0,000.00} KV{Kosten_Verzinst:0,000.00} KU:{Kosten_Unverzinst:0,000.00} KZ:{Kosten_Zinsen:0,000.00} KH:{Kosten_Hauptforderung:0,000.00}";
-    }
-
-  } //end public class Akt_Einzelbuchung_DTO
-
-
-  /// <summary>
-  /// Wie verzinst werden soll, steht bei der Hauptforderung und wird aus dem Excel
-  /// extrahhert, wenn vorhanden
-  /// </summary>
-  public class Hauptforderung_Verzinsung
-  {
-    public string Zinsart { get; set; }
-    public decimal Zinssatz { get; set; }
-    public decimal ZinsenAus { get; set; }
-    public string Forderungsart { get; set; }
-    public decimal Forderungsanteil { get; set; }
-    public DateTime ZinsenAb { get; set; }
-    public Hauptforderung_Verzinsung() { }
-
-  }
-
-  public class BuchungsSaldo
-  {
-    public decimal Betrag { get; set; }
-    public decimal Kosten_Verzinst { get; set; }
-    public decimal Kosten_Unverzinst { get; set; }
-    public decimal Kosten_Zinsen { get; set; }
-    public decimal Kosten_Hauptforderung { get; set; }
-    public DateTime Letzte_Zahlung { get; set; }
-
-    public override string ToString()
-    {
-      return $"SB:{Betrag:#,##0.00} SKV{Kosten_Verzinst:#,##0.00} SKU:{Kosten_Unverzinst:#,##0.00} SKZ:{Kosten_Zinsen:#,##0.00} SKH:{Kosten_Hauptforderung:#,##0.00}";
-    }
-
-  } //end   public class  BuchungsSaldo
 
 } //end namespace Splitbuchungen_Auflösen.Models
 

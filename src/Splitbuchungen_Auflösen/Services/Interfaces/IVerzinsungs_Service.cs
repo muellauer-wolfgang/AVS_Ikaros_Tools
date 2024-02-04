@@ -10,7 +10,9 @@ namespace Splitbuchungen_Auflösen.Services.Interfaces
 {
   public interface IVerzinsungs_Service
   {
-    List<Einzelbuchung> Calculate_Zinsen(decimal betrag, DateTime von, DateTime bis, Hauptforderung_Verzinsung zinsInfo);
+    List<Einzelbuchung> Calculate_Zinsen(decimal betrag, DateTime von, DateTime bis, Verzinsung zinsInfo);
+    List<Einzelbuchung> Calculate_Zinsen(List<Einzelbuchung> ebList, DateTime von, DateTime bis);
+
   }
 
 } //end namespace Splitbuchungen_Auflösen.Services.Interfaces

@@ -28,7 +28,7 @@ namespace Splitbuchungen_Auflösen
 
       Console.WriteLine($"START LESEN XLSX-Buchungen {_config.Infile_Buchungen}");
 
-      foreach (Akt_Einzelbuchung_DTO dto in xlsxReader.Retrieve_Buchungen(
+      foreach (Einzelbuchung_DTO dto in xlsxReader.Retrieve_Buchungen(
         Path.Combine(_config.BasePath, _config.Infile_Buchungen))) {
         counter++;
         if (counter % 100 == 0) {
@@ -68,29 +68,29 @@ namespace Splitbuchungen_Auflösen
             if (buchungsDict.ContainsKey(aktId)) {
               try {
                 BuchungsSaldo salden = buchungsDict[aktId].SaldiereBuchungen();
-                if (salden.Letzte_Zahlung > DateTime.Now.AddDays(-90)) {
-                  string infoMessage = $"Akiver Akt ID:{aktId} letzte Zahlung: {salden.Letzte_Zahlung:yyyy-MM-dd}";
+                if (salden.Letzte_Zahlung_Am > DateTime.Now.AddDays(-90)) {
+                  string infoMessage = $"Akiver Akt ID:{aktId} letzte Zahlung: {salden.Letzte_Zahlung_Am:yyyy-MM-dd}";
                   Console.WriteLine(infoMessage);
                   _aktiveAkten.AppendLine(infoMessage);
                 }
                 if (salden != null) {
                   //ich muss noch kontrollieren, ob ein Saldenpost negativ ist
                   //dann schreibe ich das in ein File
-                  if (salden.Kosten_Hauptforderung < decimal.Zero
-                      || salden.Kosten_Zinsen < decimal.Zero
-                      || salden.Kosten_Unverzinst < decimal.Zero) {
-                    string errorMessage = $"NEGATIVE KOSTEN BEI AKT: {aktId} HF:{salden.Kosten_Hauptforderung} ZI:{salden.Kosten_Zinsen} KU:{salden.Kosten_Unverzinst}";
+                  if (salden.Zinsen < decimal.Zero
+                      || salden.Zinsen < decimal.Zero
+                      || salden.Kosten_Unverzinslich < decimal.Zero) {
+                    string errorMessage = $"NEGATIVE KOSTEN BEI AKT: {aktId} HF:{salden.Zinsen} ZI:{salden.Zinsen} KU:{salden.Kosten_Unverzinslich}";
                     Console.WriteLine(errorMessage);
                     _errorMessages.AppendLine(errorMessage);
-                    salden.Kosten_Hauptforderung = Math.Abs(salden.Kosten_Hauptforderung);
-                    salden.Kosten_Zinsen = Math.Abs(salden.Kosten_Zinsen);
-                    salden.Kosten_Unverzinst = Math.Abs(salden.Kosten_Unverzinst);
+                    salden.Zinsen = Math.Abs(salden.Zinsen);
+                    salden.Zinsen = Math.Abs(salden.Zinsen);
+                    salden.Kosten_Unverzinslich = Math.Abs(salden.Kosten_Unverzinslich);
                   }
-                  string hf = salden.Kosten_Hauptforderung.ToString("#0.00");
+                  string hf = salden.Zinsen.ToString("#0.00");
                   fieldSet[subitoMgr.Find_Column_by_Name("Hauptforderung")] = hf;
-                  string zns = salden.Kosten_Zinsen.ToString("#0.00");
+                  string zns = salden.Zinsen.ToString("#0.00");
                   fieldSet[subitoMgr.Find_Column_by_Name("Zinsen")] = zns;  //47
-                  string kosten = salden.Kosten_Unverzinst.ToString("#0.00");
+                  string kosten = salden.Kosten_Unverzinslich.ToString("#0.00");
                   fieldSet[subitoMgr.Find_Column_by_Name("Kosten")] = kosten;   //50
                   fieldSet[subitoMgr.Find_Column_by_Name("Zinssatz ab")] = DateTime.Now.ToString("dd.MM.yyyy");
                 } else {

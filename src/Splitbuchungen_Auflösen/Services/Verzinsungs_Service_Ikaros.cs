@@ -10,12 +10,12 @@ using Splitbuchungen_Auflösen.Services.Interfaces;
 
 namespace Splitbuchungen_Auflösen.Services
 {
-  public class Verzinsungs_Service_Ikaros :IVerzinsungs_Service
+  public class Verzinsungs_Service_Ikaros : IVerzinsungs_Service
   {
     private static List<OenbBasiszinssatz> _zinssatzTabelle;
     private static ISQL_Anywhere_Service _db;
 
-    public Verzinsungs_Service_Ikaros( ISQL_Anywhere_Service db)
+    public Verzinsungs_Service_Ikaros(ISQL_Anywhere_Service db)
     {
       _db = db;
     }
@@ -30,7 +30,7 @@ namespace Splitbuchungen_Auflösen.Services
     /// <param name="von"></param>
     /// <param name="bis"></param>
     /// <returns></returns>
-    public List<Einzelbuchung> Calculate_Zinsen(decimal betrag, DateTime von, DateTime bis, Hauptforderung_Verzinsung zinsInfo)
+    public List<Einzelbuchung> Calculate_Zinsen(decimal betrag, DateTime von, DateTime bis, Verzinsung zinsInfo)
     {
       List<Einzelbuchung> zinsbelastungen = new();
       //Kontrolle Plausibilität der Parameter
@@ -40,7 +40,7 @@ namespace Splitbuchungen_Auflösen.Services
       if (Intervall_in_mehr_als_einer_Zinsperiode(von, bis) == false) {
         //normale Zinsberechnung, alles in einer Periode
         decimal effektiveZinsen;
-        OenbBasiszinssatz basiszins = this.Get_Valid_OentBasiszinssatz(von, bis);
+        OenbBasiszinssatz basiszins = this.Get_Valid_OenbBasiszinssatz(von, bis);
         if (zinsInfo.Zinsart.Equals("Basis")) {
           effektiveZinsen = basiszins.Zinssatz + zinsInfo.Zinssatz;
         } else if (zinsInfo.Zinsart.Equals("Fix")) {
@@ -48,14 +48,15 @@ namespace Splitbuchungen_Auflösen.Services
         } else {
           effektiveZinsen = 5M;
         }
-        decimal zinsenInMoney; 
+        decimal zinsenInMoney;
+
         zinsenInMoney = _db.CalcZinsen(betrag, effektiveZinsen, von, bis);
         Einzelbuchung ebZinsenbelastung = new Einzelbuchung {
           Valutadatum = bis,
           Kürzel = "K0099",
           Kurztext  = "Zinsbelastung",
-          Betrag = zinsenInMoney,
-          Kosten_Zinsen = zinsenInMoney
+          Umsatz = zinsenInMoney,
+          Zinsen = zinsenInMoney
         };
         zinsbelastungen.Add(ebZinsenbelastung);
       } else {
@@ -63,6 +64,60 @@ namespace Splitbuchungen_Auflösen.Services
         DateTime stichtag = Calculate_first_Zinsänderungs_Day(von, bis);
         List<Einzelbuchung> list1 = Calculate_Zinsen(betrag, von, stichtag.AddDays(-1), zinsInfo);
         List<Einzelbuchung> list2 = Calculate_Zinsen(betrag, stichtag, bis, zinsInfo);
+        List<Einzelbuchung> newList = new List<Einzelbuchung>();
+        newList.AddRange(list1);
+        newList.AddRange(list2);
+        return newList;
+      }
+
+      return zinsbelastungen;
+    }
+
+
+    /// <summary>
+    /// Diese Methode berechnet die Zinsbelastung für die Liste der Forderungen, die in 
+    /// der Buchungsliste übergeben werden.
+    /// </summary>
+    /// <param name="ebList"></param>
+    /// <param name="von"></param>
+    /// <param name="bis"></param>
+    /// <returns></returns>
+    public List<Einzelbuchung> Calculate_Zinsen(List<Einzelbuchung> ebList, DateTime von, DateTime bis)
+    {
+      List<Einzelbuchung> zinsbelastungen = new();
+      //Kontrolle Plausibilität der Parameter
+      if (ebList == null) { return zinsbelastungen; }
+      if (von >= bis) { return zinsbelastungen; }
+      if (Intervall_in_mehr_als_einer_Zinsperiode(von, bis) == false) {
+        //normale Zinsberechnung, alles in einer Periode
+        decimal effektiveZinsen;
+        OenbBasiszinssatz basiszins = this.Get_Valid_OenbBasiszinssatz(von, bis);
+        decimal zinsenInMoney;
+        foreach (Einzelbuchung eb in ebList) {
+          if (eb.VerzinsungsInfo.Zinsart.Equals("Basis")) {
+            effektiveZinsen = basiszins.Zinssatz + eb.VerzinsungsInfo.Zinssatz;
+          } else if (eb.VerzinsungsInfo.Zinsart.Equals("Fix")) {
+            effektiveZinsen = eb.VerzinsungsInfo.Zinssatz;
+          } else {
+            effektiveZinsen = decimal.Zero;
+          }
+          if (effektiveZinsen > decimal.Zero) {
+            zinsenInMoney = _db.CalcZinsen(eb.Hauptforderung, effektiveZinsen, von, bis);
+            Einzelbuchung ebZinsenbelastung = new Einzelbuchung {
+              Valutadatum = bis,
+              Kürzel = "K0099",
+              Kurztext  = "Zinsbelastung",
+              Umsatz = zinsenInMoney,
+              Zinsen = zinsenInMoney
+            };
+            zinsbelastungen.Add(ebZinsenbelastung);
+          }
+        }
+      } else {
+        //Splitten der Perioden, und dann rekursiv in die Berechnung
+        DateTime stichtag = Calculate_first_Zinsänderungs_Day(von, bis);
+        List<Einzelbuchung> list1 = Calculate_Zinsen(ebList, von, stichtag.AddDays(-1));
+        List<Einzelbuchung> list2 = Calculate_Zinsen(ebList, stichtag, bis);
         List<Einzelbuchung> newList = new List<Einzelbuchung>();
         newList.AddRange(list1);
         newList.AddRange(list2);
@@ -92,7 +147,7 @@ namespace Splitbuchungen_Auflösen.Services
       return bis;
     }
 
-    private OenbBasiszinssatz Get_Valid_OentBasiszinssatz(DateTime von, DateTime bis)
+    private OenbBasiszinssatz Get_Valid_OenbBasiszinssatz(DateTime von, DateTime bis)
     {
       for (int i = _zinssatzTabelle.Count - 1; i >= 0; i--) {
         if (von >= _zinssatzTabelle[i].Stichtag && bis >= _zinssatzTabelle[i].Stichtag) {
