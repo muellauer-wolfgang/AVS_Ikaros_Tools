@@ -22,6 +22,7 @@ namespace Splitbuchungen_Auflösen.Models
     public decimal Zinsen { get; set; }
     public decimal Hauptforderung { get; set; }
     public decimal Spesen_Auftraggeber {  get; set; }
+    public decimal Spesen_Auftraggeber_Abgerechnet { get; set; }
     public DateTime Letzte_Zahlung_Am { get; set; }
     public List<Einzelbuchung> Hauptforderungen_Offen { get; set; } = new();
 

@@ -142,6 +142,11 @@ namespace Splitbuchungen_Auflösen.Services
       return _zinssatzTabelle.Last();
     }
 
+    public BuchungsSaldo CalcSaldo(string aktenzeichen, DateTime bis)
+    {
+      throw new NotImplementedException();
+    }
+
     static Verzinsungs_Service_Lokal()
     {
       _zinssatzTabelle = new List<OenbBasiszinssatz> {

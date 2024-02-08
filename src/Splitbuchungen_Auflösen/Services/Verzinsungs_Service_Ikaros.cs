@@ -157,6 +157,11 @@ namespace Splitbuchungen_Auflösen.Services
       return _zinssatzTabelle.Last();
     }
 
+    public BuchungsSaldo CalcSaldo(string aktenzeichen, DateTime bis)
+    {
+      return _db.CalcSaldo(aktenzeichen, bis);
+    }
+
     static Verzinsungs_Service_Ikaros()
     {
       _zinssatzTabelle = new List<OenbBasiszinssatz> {

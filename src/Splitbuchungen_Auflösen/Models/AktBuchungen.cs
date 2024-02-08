@@ -29,54 +29,11 @@ namespace Splitbuchungen_Auflösen.Models
       _verzingsungsSvc = zinsenSVC; 
     }
 
-/*
-    /// <summary>
-    /// Diese Methode trägt eine Buchung in die Liste ein. Hierbei ist einiges zu beachten:
-    /// der Betrag ist in der IKAROS Datenbank immer positiv, das ist aber zum Rechnen nicht
-    /// sinnvoll. Daher muss ich ihn bei Zahlungen invertieren. 
-    /// </summary>
-    public void Add_Einzelbuchung(
-      DateTime valutadatum,
-      string kürzel, 
-      string kurztext,
-      decimal betrag,
-      decimal kostenVerzinst, 
-      decimal kostenUnverzinst, 
-      decimal kostenZinsen, 
-      decimal hauptforderung)
-    {
-      Einzelbuchung newEB = new();
-      newEB.Valutadatum = valutadatum;
-      if (!string.IsNullOrEmpty(kürzel)) { newEB.Kürzel = kürzel; } else { newEB.Kürzel = "N.N."; }
-      if (!string.IsNullOrEmpty(kurztext)) { newEB.Kurztext = kurztext; } else { newEB.Kurztext = "N.N."; }
-      if (kürzel.Equals("Z001", StringComparison.InvariantCultureIgnoreCase)) {
-        newEB.Betrag = betrag * -1M;
-      } else {
-        newEB.Betrag = betrag;
-      }
-      newEB.Kosten_Verzinst = kostenVerzinst;
-      newEB.Kosten_Unverzinst = kostenUnverzinst;
-      newEB.Kosten_Zinsen = kostenZinsen;
-      newEB.Kosten_Hauptforderung = hauptforderung;
-      //jetzt noch Kontrolle, ob Fehler bei Zinsen und wenn ja: korrigieren
-      if (newEB.Betrag != (newEB.Kosten_Verzinst + newEB.Kosten_Unverzinst + newEB.Kosten_Zinsen + newEB.Kosten_Hauptforderung)) {
-        if (newEB.Kosten_Zinsen != Decimal.Zero) {
-          newEB.Kosten_Zinsen = (newEB.Betrag) - (newEB.Kosten_Unverzinst + newEB.Kosten_Verzinst + newEB.Kosten_Hauptforderung);
-        } else {
-         // throw new InvalidDataException("RUNDUNGSFEHLER!!!");
-        }
-      }
-      BuchungsListe.Add(newEB);
-    }
-*/
-
     public void Add_Einzelbuchung(Einzelbuchung_DTO dto)
     {
       BuchungsListe.Add(new Einzelbuchung(dto));
       BuchungsListe.Sort();
     }
-
-
 
     public BuchungsSaldo SaldiereBuchungen()
     {
@@ -138,12 +95,13 @@ namespace Splitbuchungen_Auflösen.Models
       }
       //jetzt bin ich fast fertig, ich muss nur noch die Zinsen ab der letzten 
       //verzinsung berechnen und zu den Zinsen addieren
-      if (letzteVerzinsung < DateTime.Now) {
+      //es wird bis 2024-01-31 verzinst
+      if (letzteVerzinsung < new DateTime(2024, 01,31)) {
         //nachverzinsen
         List<Einzelbuchung> zns = _verzingsungsSvc.Calculate_Zinsen(
           saldo.Hauptforderungen_Offen,
           letzteVerzinsung,
-          DateTime.Now);
+          new DateTime(2024, 01, 31));
         foreach(Einzelbuchung zeb in zns) {
           saldo.Zinsen += zeb.Zinsen;
           saldo.Umsatz += zeb.Umsatz;
@@ -152,6 +110,15 @@ namespace Splitbuchungen_Auflösen.Models
       }
       saldo.Letzte_Zahlung_Am = letzeZahlung;
 
+      //jetzt führe ich das alles ad absudrum und schau mal nach, 
+      //was die Datenbank liefert.
+      BuchungsSaldo s = _verzingsungsSvc.CalcSaldo(Aktenzeichen, new DateTime(2024, 01, 31));
+      saldo.Umsatz = s.Umsatz;
+      saldo.Kosten_Unverzinslich = s.Kosten_Unverzinslich;
+      saldo.Kosten_Verzinslich = s.Kosten_Verzinslich;
+      saldo.Spesen_Auftraggeber_Abgerechnet = s.Spesen_Auftraggeber_Abgerechnet;
+      saldo.Zinsen = s.Zinsen;
+      saldo.Hauptforderung = s.Hauptforderung;
       return saldo;
     }
 

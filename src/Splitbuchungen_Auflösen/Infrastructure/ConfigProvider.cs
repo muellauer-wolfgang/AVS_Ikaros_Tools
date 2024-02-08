@@ -26,8 +26,8 @@ namespace Splitbuchungen_Auflösen.Infrastructure
     //public string BasePath => @"H:\mdc\Kunden\AVS\Software\Ikaros_Tools\daten\05_Akt_Lehner";
     //public string BasePath => @"H:\mdc\Kunden\AVS\Software\Ikaros_Tools\daten\06_Akt_Gagesch";
     //public string BasePath => @"H:\mdc\Kunden\AVS\Software\Ikaros_Tools\daten\07_Akt_Tozios";
-
-    public string BasePath => @"H:\mdc\Kunden\AVS\Software\Ikaros_Tools\daten\Import_2024_02_04";
+    //public string BasePath => @"H:\mdc\Kunden\AVS\Software\Ikaros_Tools\daten\Import_2024_02_04";
+    public string BasePath => @"H:\mdc\Kunden\AVS\Software\Ikaros_Tools\daten\Import_2024_02_07";
 
     public string Infile_Buchungen => @"IKAROS-Export.xlsx";
     public string Infile_4_Subito => @"IKAROS-Akten.csv";

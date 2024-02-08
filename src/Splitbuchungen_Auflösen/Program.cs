@@ -17,6 +17,9 @@ namespace Splitbuchungen_Auflösen
     public static IConfigProvider _config { get; set; }
     public static StringBuilder _errorMessages { get; set; } = new StringBuilder();
     public static StringBuilder _aktiveAkten { get; set; } = new StringBuilder();
+    public static StringBuilder _kostenAgOffen { get; set; } = new StringBuilder();
+    public static StringBuilder _kostenAgErledigt { get; set; } = new StringBuilder();
+
     static void Main(string[] args)
     {
       int counter = 0;
@@ -73,17 +76,25 @@ namespace Splitbuchungen_Auflösen
             fieldSet[subitoMgr.Find_Column_by_Name("Zinsen")] = "0,00";
             fieldSet[subitoMgr.Find_Column_by_Name("Kosten")] = "0,00";
             fieldSet[subitoMgr.Find_Column_by_Name("Kosten 2 Betrag")] = "0,00";
-            fieldSet[subitoMgr.Find_Column_by_Name("Zinssatz ab")] = DateTime.Now.ToString("dd.MM.yyyy");
-            fieldSet[subitoMgr.Find_Column_by_Name("Kostenzins ab")] = DateTime.Now.ToString("dd.MM.yyyy");
-            fieldSet[subitoMgr.Find_Column_by_Name("Verrechnung ab")] = DateTime.Now.ToString("dd.MM.yyyy");
-            fieldSet[subitoMgr.Find_Column_by_Name("Valuta")] = DateTime.Now.ToString("dd.MM.yyyy");
-            fieldSet[subitoMgr.Find_Column_by_Name("Abweichendes Übergabedatum")] = DateTime.Now.ToString("dd.MM.yyyy");
+            fieldSet[subitoMgr.Find_Column_by_Name("Zinssatz ab")] =    new DateTime(2024, 01, 31).ToString("dd.MM.yyyy");
+            fieldSet[subitoMgr.Find_Column_by_Name("Kostenzins ab")] =  new DateTime(2024, 01, 31).ToString("dd.MM.yyyy");
+            fieldSet[subitoMgr.Find_Column_by_Name("Verrechnung ab")] = new DateTime(2024, 01, 31).ToString("dd.MM.yyyy");
+            fieldSet[subitoMgr.Find_Column_by_Name("Valuta")] =         new DateTime(2024, 01, 31).ToString("dd.MM.yyyy");
+            fieldSet[subitoMgr.Find_Column_by_Name("Abweichendes Übergabedatum")] = new DateTime(2024, 01, 31).ToString("dd.MM.yyyy");
           } else {
             if (buchungsDict.ContainsKey(aktId)) {
               try {
+                if (aktId.Equals("20160012037")) {
+                  Trace.Write("Trigger");
+                }
                 AktBuchungen b = buchungsDict[aktId];
+                if (string.IsNullOrEmpty(b.Aktenzeichen)) {
+                  b.Aktenzeichen = aktId;
+                } else {
+                  Trace.Write("Das geht dann nicht");
+                }
                 BuchungsSaldo salden = buchungsDict[aktId].SaldiereBuchungen();
-                if (salden.Letzte_Zahlung_Am > DateTime.Now.AddDays(-90)) {
+                if (salden.Letzte_Zahlung_Am > DateTime.Now.AddDays(-2000)) {
                   string infoMessage = $"Aktiver Akt ID:{aktId} letzte Zahlung: {salden.Letzte_Zahlung_Am:yyyy-MM-dd}";
                   Console.WriteLine(infoMessage);
                   _aktiveAkten.AppendLine(infoMessage);
@@ -105,22 +116,43 @@ namespace Splitbuchungen_Auflösen
                   fieldSet[subitoMgr.Find_Column_by_Name("Hauptforderung")] = hf;
                   string zns = salden.Zinsen.ToString("#0.00");
                   fieldSet[subitoMgr.Find_Column_by_Name("Zinsen")] = zns;
-                  string kosten;
-                  string kostenAG;
-                  if (salden.Kosten_Unverzinslich > salden.Spesen_Auftraggeber) {
-                    kosten = (salden.Kosten_Unverzinslich - salden.Spesen_Auftraggeber).ToString("#0.00");
-                    kostenAG = salden.Spesen_Auftraggeber.ToString("#0.00");
-                  } else {
-                    kosten = salden.Kosten_Unverzinslich.ToString("#0.00");
-                    kostenAG = "0,00";
+                  string kostenOffen;
+                  string kostenAgOffen;
+                  decimal kAgOffen = salden.Spesen_Auftraggeber - salden.Spesen_Auftraggeber_Abgerechnet;
+                  if (kAgOffen < decimal.Zero) {
+                    kAgOffen = decimal.Zero;
                   }
-                  fieldSet[subitoMgr.Find_Column_by_Name("Kosten")] = kostenAG;  
-                  fieldSet[subitoMgr.Find_Column_by_Name("Kosten 2 Betrag")] = kosten;
-                  fieldSet[subitoMgr.Find_Column_by_Name("Zinssatz ab")] = DateTime.Now.ToString("dd.MM.yyyy");
-                  fieldSet[subitoMgr.Find_Column_by_Name("Kostenzins ab")] = DateTime.Now.ToString("dd.MM.yyyy");
-                  fieldSet[subitoMgr.Find_Column_by_Name("Verrechnung ab")] = DateTime.Now.ToString("dd.MM.yyyy");
-                  fieldSet[subitoMgr.Find_Column_by_Name("Valuta")] = DateTime.Now.ToString("dd.MM.yyyy");
-                  fieldSet[subitoMgr.Find_Column_by_Name("Abweichendes Übergabedatum")] = DateTime.Now.ToString("dd.MM.yyyy");
+                  kostenOffen = (salden.Kosten_Unverzinslich - kAgOffen).ToString("#0.00");
+                  kostenAgOffen = kAgOffen.ToString("#0.00");
+
+
+                  if (kAgOffen  > decimal.Zero) {
+                    string msgKostenAg = $"KOSTEN AG NOCH OFFEN AKT: {aktId} K-AG: {kAgOffen}";
+                    Console.WriteLine(msgKostenAg);
+                    _kostenAgOffen.AppendLine(msgKostenAg);
+                  } else {
+                    string msgKostenAg = $"KOSTEN AG ERLEDIGT AKT: {aktId} K-AG: {kAgOffen}";
+                    Console.WriteLine(msgKostenAg);
+                    _kostenAgErledigt.AppendLine(msgKostenAg);
+                  }
+
+                  /*
+                  if (salden.Kosten_Unverzinslich > salden.Spesen_Auftraggeber) {
+                    kostenOffen = (salden.Kosten_Unverzinslich - salden.Spesen_Auftraggeber).ToString("#0.00");
+                    kostenAgOffen = salden.Spesen_Auftraggeber.ToString("#0.00");
+                  } else {
+                    kostenAgOffen = salden.Kosten_Unverzinslich.ToString("#0.00");
+                    kostenOffen = "0,00";
+                  }
+                  */
+
+                  fieldSet[subitoMgr.Find_Column_by_Name("Kosten")] = kostenAgOffen;
+                  fieldSet[subitoMgr.Find_Column_by_Name("Kosten 2 Betrag")] = kostenOffen;
+                  fieldSet[subitoMgr.Find_Column_by_Name("Zinssatz ab")] =    new DateTime(2024, 01, 31).ToString("dd.MM.yyyy");
+                  fieldSet[subitoMgr.Find_Column_by_Name("Kostenzins ab")] =  new DateTime(2024, 01, 31).ToString("dd.MM.yyyy");
+                  fieldSet[subitoMgr.Find_Column_by_Name("Verrechnung ab")] = new DateTime(2024, 01, 31).ToString("dd.MM.yyyy");
+                  fieldSet[subitoMgr.Find_Column_by_Name("Valuta")] =         new DateTime(2024, 01, 31).ToString("dd.MM.yyyy");
+                  fieldSet[subitoMgr.Find_Column_by_Name("Abweichendes Übergabedatum")] = new DateTime(2024, 01, 31).ToString("dd.MM.yyyy");
                 } else {
                   Console.WriteLine($"Fehler beim Saldieren Akt {aktId} csvCount: {csvCounter}");
                 }
@@ -147,8 +179,16 @@ namespace Splitbuchungen_Auflösen
         _errorMessages.ToString());
 
       File.WriteAllText(
-  Path.Combine(_config.BasePath, $"AktiveAkten_{DateTime.Now:yyyy_MM_dd_HH_mm_ss}.txt"),
-  _aktiveAkten.ToString());
+        Path.Combine(_config.BasePath, $"AktiveAkten_{DateTime.Now:yyyy_MM_dd_HH_mm_ss}.txt"),
+        _aktiveAkten.ToString());
+
+      File.WriteAllText(
+        Path.Combine(_config.BasePath, $"KostenAgOffen_{DateTime.Now:yyyy_MM_dd_HH_mm_ss}.txt"),
+        _kostenAgOffen.ToString());
+
+      File.WriteAllText(
+        Path.Combine(_config.BasePath, $"KostenAgErledigt_{DateTime.Now:yyyy_MM_dd_HH_mm_ss}.txt"),
+        _kostenAgErledigt.ToString());
 
     } //end     static void Main(string[] args)
 
