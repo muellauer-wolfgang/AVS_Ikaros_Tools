@@ -7,12 +7,11 @@ using Splitbuchungen_Auflösen.Models;
 using Splitbuchungen_Auflösen.DataServices;
 using System.Text;
 using System.Diagnostics;
+using Splitbuchungen_Auflösen.DataServices.Interfaces;
 namespace Splitbuchungen_Auflösen
 {
   internal class Program
   {
-
-
     public static IContainer _container { get; private set; } = new Bootstrapper().Bootstrap();
     public static IConfigProvider _config { get; set; }
     public static StringBuilder _errorMessages { get; set; } = new StringBuilder();
@@ -28,6 +27,7 @@ namespace Splitbuchungen_Auflösen
       _config = _container.Resolve<IConfigProvider>();
       Console.WriteLine("Ikaros_Tool Splitbuchungen auflösen");
       Console.WriteLine($"BasePath: {_config.BasePath}");
+
       IXlsx_Reader xlsxReader = _container.Resolve<IXlsx_Reader>();
 
       Console.WriteLine($"START LESEN XLSX-Buchungen {_config.Infile_Buchungen}");
@@ -64,10 +64,7 @@ namespace Splitbuchungen_Auflösen
 
           if (!string.IsNullOrEmpty(aktId) && aktId.Equals("2023000326")) {
             Debug.WriteLine("Trigger");
-
           }
-
-
 
           //Kosten darf ich nur auf Haupt-Akte buchen, das sind Akte, wo im Feld
           //Schuldnernummer 0 steht. Auf den nicht 0 nummern sind die Koste nimmer 0

@@ -28,6 +28,27 @@ namespace Splitbuchungen_Auflösen.DataServices
       _connection.Open();
     }
 
+    public IEnumerable<(string Aktenzeichen, string Gläubiger)> RetrieveAllAktenzeichenGläubiger()
+    {
+      string query = "SELECT DISTINCT " +
+        "a.Az AS Aktenzeichen " +
+        ",k.Name1 + ' ' + k.Name2 AS Gläubiger " +
+        "FROM Akte a " +
+        "JOIN Kontakt k ON k.Kontakt_ID = a.Mandant_ID; ";
+      if (_connection.State != ConnectionState.Open) {
+        _connection.Open();
+      }
+      using (OdbcCommand cmd = new OdbcCommand(query, _connection)) {
+        using (OdbcDataReader reader = cmd.ExecuteReader()) {
+          while (reader.Read()) {
+            string az = reader.GetString(0).Trim();
+            string gl = reader.GetString(1).Trim();
+            yield return (az, gl);
+          } 
+        }
+      }
+    }
+
     /// <summary>
     /// Diese Methode berechnet die Zinsen mit einer stored Procedure
     /// </summary>

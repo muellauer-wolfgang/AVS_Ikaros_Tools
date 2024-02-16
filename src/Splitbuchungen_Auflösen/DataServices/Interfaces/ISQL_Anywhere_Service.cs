@@ -10,6 +10,7 @@ namespace Splitbuchungen_Auflösen.DataServices.Interfaces
 {
   public interface ISQL_Anywhere_Service
   {
+    IEnumerable<(string Aktenzeichen, string Gläubiger)> RetrieveAllAktenzeichenGläubiger();
     decimal CalcZinsen(decimal betrag, decimal zinsatz, DateTime von, DateTime bis);
     public BuchungsSaldo CalcSaldo(string aktenzeichen, DateTime bis);
 
