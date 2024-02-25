@@ -11,7 +11,9 @@ Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Splitbuchungen_Auflösen_Un
 EndProject
 Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Abgleich_Migrationsdaten", "Abgleich_Migrationsdaten\Abgleich_Migrationsdaten.csproj", "{070375C1-426A-4675-874A-22E43D24A22B}"
 EndProject
-Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Abgleich_Ikaros_Export_Subito_Query", "Abgleich_Ikaros_Export_Subito_Query\Abgleich_Ikaros_Export_Subito_Query.csproj", "{9B5420C4-93F2-4D1B-A988-212CA9A1CCF6}"
+Project("{9A19103F-16F7-4668-BE54-9A1E7A4F7556}") = "Abgleich_Ikaros_Export_Subito_Query", "Abgleich_Ikaros_Export_Subito_Query\Abgleich_Ikaros_Export_Subito_Query.csproj", "{9B5420C4-93F2-4D1B-A988-212CA9A1CCF6}"
+EndProject
+Project("{FAE04EC0-301F-11D3-BF4B-00C04F79EFBC}") = "Dokumente_2_Subito", "Dokumente_2_Subito\Dokumente_2_Subito.csproj", "{98EB4D26-E884-4795-B384-1CF1321983ED}"
 EndProject
 Global
 	GlobalSection(SolutionConfigurationPlatforms) = preSolution
@@ -35,6 +37,10 @@ Global
 		{9B5420C4-93F2-4D1B-A988-212CA9A1CCF6}.Debug|Any CPU.Build.0 = Debug|Any CPU
 		{9B5420C4-93F2-4D1B-A988-212CA9A1CCF6}.Release|Any CPU.ActiveCfg = Release|Any CPU
 		{9B5420C4-93F2-4D1B-A988-212CA9A1CCF6}.Release|Any CPU.Build.0 = Release|Any CPU
+		{98EB4D26-E884-4795-B384-1CF1321983ED}.Debug|Any CPU.ActiveCfg = Debug|Any CPU
+		{98EB4D26-E884-4795-B384-1CF1321983ED}.Debug|Any CPU.Build.0 = Debug|Any CPU
+		{98EB4D26-E884-4795-B384-1CF1321983ED}.Release|Any CPU.ActiveCfg = Release|Any CPU
+		{98EB4D26-E884-4795-B384-1CF1321983ED}.Release|Any CPU.Build.0 = Release|Any CPU
 	EndGlobalSection
 	GlobalSection(SolutionProperties) = preSolution
 		HideSolutionNode = FALSE
