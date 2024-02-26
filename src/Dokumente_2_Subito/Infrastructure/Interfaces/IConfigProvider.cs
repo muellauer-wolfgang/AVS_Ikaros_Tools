@@ -9,7 +9,7 @@ namespace Dokumente_2_Subito.Infrastructure.Interfaces
   public interface IConfigProvider
   {
     string ConnectionString_ASA {  get; } 
-    string ConnectionString_MSSQL { get; }  
+    string ConnectionString_MySql { get; }  
     string BasePath {  get; }
     string ExportPath { get; }
     string IkarosDocumentPath { get; }

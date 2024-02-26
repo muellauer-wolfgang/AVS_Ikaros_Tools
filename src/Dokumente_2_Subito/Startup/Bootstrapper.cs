@@ -18,7 +18,7 @@ namespace Dokumente_2_Subito.Startup
       ContainerBuilder builder = new ContainerBuilder();
       builder.RegisterType<ConfigProvider>().As<IConfigProvider>().SingleInstance();  
       builder.RegisterType<IkarosDataService>().As<IIkarosDataService>().SingleInstance();  
-      builder.RegisterType<MssqlDataService>().As<IMssqlDataService>().SingleInstance();
+      builder.RegisterType<MySqlDataService>().As<IMySqlDataService>().SingleInstance();
       return builder.Build();
     } //end     public IContainer Bootstrap()
 

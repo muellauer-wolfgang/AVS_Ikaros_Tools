@@ -7,7 +7,7 @@ using Dokumente_2_Subito.Models;
 
 namespace Dokumente_2_Subito.DataServices.Interfaces
 {
-  public interface IMssqlDataService
+  public interface IMySqlDataService
   {
     IEnumerable<Mapping_Ikaros_Subito> RetrieveAll();
   }

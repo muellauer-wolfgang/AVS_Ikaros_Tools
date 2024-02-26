@@ -12,7 +12,7 @@ namespace Dokumente_2_Subito.Infrastructure
   {
     public string ConnectionString_ASA => "DSN=IKAROS-VM";
 
-    public string ConnectionString_MSSQL => @"Data Source=localhost\MDC;Initial Catalog=avs;Persist Security Info=True;Trusted_Connection=Yes;TrustServerCertificate=True";
+    public string ConnectionString_MySql => @"server=10.0.0.5;uid=fmm_prod_master;pwd=subito;database=fmm_prod";
 
     public string BasePath => @"H:\tmp\AVS\Tmp";
 

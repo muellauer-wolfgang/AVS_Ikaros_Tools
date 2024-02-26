@@ -4,6 +4,8 @@ using Dokumente_2_Subito.Startup;
 using Dokumente_2_Subito.Models;
 using Dokumente_2_Subito.DataServices.Interfaces;
 using System.Text;
+using System.Collections.Generic;
+using ZstdSharp.Unsafe;
 
 namespace Dokumente_2_Subito
 {
@@ -11,13 +13,18 @@ namespace Dokumente_2_Subito
   {
     public static IContainer _container;
     public static IConfigProvider _config;
+    //Daten, die direkt aus den Datenbanken gelesen werden
     public static List<Ikaros_Document_Item_DTO> _ikarosItemsListe = new();
-    public static List<Mapping_Ikaros_Subito> _mappingListe = new();
-    public static Dictionary<string, Mapping_Ikaros_Subito> _ikaros_2_subito_lookup = new();
-    public static Dictionary<string, SubitoAkt> _subitoAktDict = new();
+    public static List<Mapping_Ikaros_Subito> _mappingListe_IKAROS_2_SUBITO = new();
+
+    //Maps, die aus den Rohdaten berechnet werden
+    public static Dictionary<string, List<Mapping_Ikaros_Subito>> _ikaros_2_subito_lookup = new();
+    public static Dictionary<string, TransferContainer> _tranferContainerDict = new();
     public static Dictionary<string, Gläubiger> _gläubigerDict = new();
     public static Dictionary<string, List<Ikaros_Document_Item_DTO>> _ikarosOrphanItemsDict = new();
-    public static Dictionary<string, Ikaros_Document_Item_DTO> _ikarosMappedItemsDict = new();
+    public static Dictionary<string, List<Ikaros_Document_Item_DTO>> _ikarosMappedItemsDict = new();
+
+
     public static List<Ikaros_Document_Item_DTO> _ItemsOhneMapping = new(); 
     static void Main(string[] args)
     {
@@ -25,57 +32,57 @@ namespace Dokumente_2_Subito
       _config = _container.Resolve<IConfigProvider>();
 
       IIkarosDataService ikarosDB = _container.Resolve<IIkarosDataService>();
-      IMssqlDataService mssqlDB = _container.Resolve<IMssqlDataService>();
+      IMySqlDataService myswqlDB = _container.Resolve<IMySqlDataService>();
 
       Console.WriteLine("Dokumente_2_Subito");
       Console.WriteLine("Konsolidierung von Dokument-Daten für Übertragung nach Subito");
 
-      Console.WriteLine("Lesen Mapping Subito <--> Ikaros");
-      foreach (Mapping_Ikaros_Subito mis in mssqlDB.RetrieveAll()) {
-        _mappingListe.Add(mis);
+      Console.WriteLine("Lesen Mapping Subito <--> Ikaros aus SUBITO DB");
+      foreach (Mapping_Ikaros_Subito mis in myswqlDB.RetrieveAll()) {
+        _mappingListe_IKAROS_2_SUBITO.Add(mis);
       }
-      Console.WriteLine($"Anzahl Mapping Elemente: {_mappingListe.Count}");
+      Console.WriteLine($"Anzahl Mapping Elemente: {_mappingListe_IKAROS_2_SUBITO.Count}");
+
       //im ersten Schritt erzeuge ich das Mapping-Dict, das mir hilft, 
-      //aus der Ikaros-Aktnummer den Subito Akt zu finden.
-
-      List<Mapping_Ikaros_Subito> doublettenListe = new();
-
-      int map_ikaros_2_subito_errorCnt = 0;
-      foreach (Mapping_Ikaros_Subito m in _mappingListe) {
+      //aus der Ikaros-Aktnummer die Subito Akten zu finden.
+      foreach (Mapping_Ikaros_Subito m in _mappingListe_IKAROS_2_SUBITO) {
         if (!m.SubitoAnr.EndsWith("/0")) {
           continue;
         }
         if (!_ikaros_2_subito_lookup.ContainsKey(m.IkarosAnr)) {
-          _ikaros_2_subito_lookup.Add(m.IkarosAnr, m);
+          _ikaros_2_subito_lookup.Add(m.IkarosAnr, new List<Mapping_Ikaros_Subito> {m});
         } else {
-          map_ikaros_2_subito_errorCnt++;
-          doublettenListe.Add(_ikaros_2_subito_lookup[m.IkarosAnr]);
-          doublettenListe.Add(m);
-          //Console.WriteLine("Mapping_Ikaros_Subito 1:1 sollte eindeutig sein");
+          _ikaros_2_subito_lookup[m.IkarosAnr].Add(m);
         }
       }
-      Console.WriteLine($"Anzahl Fehler Mapping_Ikaros_Subito 1:1 {map_ikaros_2_subito_errorCnt}");
+      Console.WriteLine($"Anzahl Ikaros Akte mit Mappings: {_ikaros_2_subito_lookup.Count}");
+
+      //Dann lege ich alle Subito TransferContainer an und organsiere sie über einen Dict
+      //hier ist es ein bisschen kompliziert, da es aus historischen Gründen zu einem 
+      //Ikaros Akt mehrere Subito Akten gibt, IKAROS : SUBITO also ein 1:N Mapping ist
       int doubletten_subito_akteCnt = 0;
-      //Dann lege ich alle Subito Akte an und organsiere sie über einen Dict
-      foreach (Mapping_Ikaros_Subito m in _mappingListe) {
-        if (!_subitoAktDict.ContainsKey(m.SubitoAnr)) {
-          _subitoAktDict.Add(m.SubitoAnr, new SubitoAkt());
+      foreach (Mapping_Ikaros_Subito m in _mappingListe_IKAROS_2_SUBITO) {
+        if (!_tranferContainerDict.ContainsKey(m.IkarosAnr)) {
+          _tranferContainerDict.Add(m.IkarosAnr, new TransferContainer());
         } else {
           doubletten_subito_akteCnt++;
         }
       }
-      Console.WriteLine($"Doubletten Subito Akte laut Mapping {doubletten_subito_akteCnt}");
+      Console.WriteLine($"Doubletten Transfer Container laut Mapping {doubletten_subito_akteCnt}");
 
-
-      Console.WriteLine("Lesen Ikaros Item DTOs");
-      string assigendSubitoAnr;
-      foreach (Ikaros_Document_Item_DTO ik in ikarosDB.RetrieveAll() ) {
-        assigendSubitoAnr = string.Empty;
- 
-        _ikarosItemsListe.Add(ik);
-        if (!_gläubigerDict.ContainsKey(ik.GläubigerName)) {
-          _gläubigerDict[ik.GläubigerName] = new Gläubiger {Name = ik.GläubigerName };
+      Console.WriteLine("Lesen Ikaros Item DTOs aus IKAROS DB");
+      int itemCnt = 0;
+      foreach (Ikaros_Document_Item_DTO ik in ikarosDB.RetrieveAll()) {
+        itemCnt++;
+        if (itemCnt % 1000 == 0) {
+          Console.WriteLine($"Gelesen: {itemCnt}");
         }
+        _ikarosItemsListe.Add(ik);
+        //Gläubiger beim Vorbeigehen einlesen
+        if (!_gläubigerDict.ContainsKey(ik.GläubigerName)) {
+          _gläubigerDict[ik.GläubigerName] = new Gläubiger { Name = ik.GläubigerName };
+        }
+        //Zuweisen des Ikaros Tupel zu den Subito Akten oder den Orphans
         if (!_ikaros_2_subito_lookup.ContainsKey(ik.IkarosAnr)) {
           //ist ein Orphan, könnte Dadaj Akt sein, auf jeden Fall Orphan
           if (!_ikarosOrphanItemsDict.ContainsKey(ik.IkarosAnr)) {
@@ -83,38 +90,46 @@ namespace Dokumente_2_Subito
           }
           _ikarosOrphanItemsDict[ik.IkarosAnr].Add(ik);
         } else {
-          _ikarosMappedItemsDict.TryAdd(ik.IkarosAnr, ik);
-          assigendSubitoAnr = _ikaros_2_subito_lookup[ik.IkarosAnr].SubitoAnr;
+          if (!_ikarosMappedItemsDict.ContainsKey(ik.IkarosAnr)) {
+            _ikarosMappedItemsDict.Add(ik.IkarosAnr, new());
+          }
+          _ikarosMappedItemsDict[ik.IkarosAnr].Add(ik); 
         }
-        if (!_subitoAktDict.ContainsKey(assigendSubitoAnr) ) {
-          _subitoAktDict.Add(assigendSubitoAnr, new SubitoAkt());
+        if (!_tranferContainerDict.ContainsKey(ik.IkarosAnr)) {
+          _tranferContainerDict.Add(ik.IkarosAnr, new TransferContainer {IkarosAnr = ik.IkarosAnr });
         }
-        _subitoAktDict[assigendSubitoAnr].IkarosItems.Add(ik);
-        _gläubigerDict[ik.GläubigerName].Akten.Add(_subitoAktDict[assigendSubitoAnr]);
+        _tranferContainerDict[ik.IkarosAnr].IkarosItems.Add(ik);
       }
 
-      //Darstellen der Doubletten mit Daten aus Ikaros Akten, Interessant ist das land
-      StringBuilder sb = new StringBuilder(); 
-      for (int i = 0; i < doublettenListe.Count; i++) {
-        if (_ikarosMappedItemsDict.ContainsKey(doublettenListe[i].IkarosAnr)) {
-          Console.WriteLine($"IkarosAkt gefunden");
-        } else {
-          Console.WriteLine($"IkarosAkt NICHT gefunden");
-
+      //jetzte müsste für jeden Transfer Container gelten, dass alle DTOs drinnen 
+      //die gleiche IKaros ANR haben und den gleichen Gläubiger
+      Console.WriteLine("Beginn Kontrolle TransferContainers IkarosAnr, Gläubiger");
+      foreach (TransferContainer tc in _tranferContainerDict.Values) {
+        string iNr;
+        string gl;
+        if (tc.IkarosItems.Count > 1) {
+          iNr = tc.IkarosItems[0].IkarosAnr;
+          gl = tc.IkarosItems[0].GläubigerName;
+          tc.Gläubiger = gl;
+          for (int i=1; i <tc.IkarosItems.Count; i++) {
+            if (!iNr.Equals(tc.IkarosItems[i].IkarosAnr)) { 
+              Console.WriteLine($"Fehler bei IkarosAnr: {iNr}"); 
+            }
+            if (!gl.Equals(tc.IkarosItems[i].GläubigerName)) {
+              Console.WriteLine($"Fehler bei Gläubiger: {gl}");
+            }
+          }
         }
-        SubitoAkt sa = _subitoAktDict[doublettenListe[i].SubitoAnr];
-        Ikaros_Document_Item_DTO ik = _ikarosMappedItemsDict[doublettenListe[i].IkarosAnr];
-        Console.WriteLine($"SAnr: {sa.SubitoAnr} IAnr:{ik.IkarosAnr} IS:{ik.SchuldnerName} ./. IG: {ik.GläubigerName} SLand:{ik.SchuldnerLand}");
-        sb.AppendLine($"{ik.IkarosAnr};{doublettenListe[i].SubitoAnr};{ik.Datum};{ik.GläubigerName};{ik.SchuldnerName};{ik.SchuldnerLand}");
-
-
       }
+      Console.WriteLine("Ende Kontrolle TransferContainers IkarosAnr, Gläubiger");
+
+
+
       Console.WriteLine($"Anzahl Ikaros Elemente: {_ikarosItemsListe.Count}");
-      Console.WriteLine($"Anzahl Gläubiger: {_gläubigerDict.Count}");
-      Console.WriteLine($"Anzahl Subito Akte: {_subitoAktDict.Count}");
-      Console.WriteLine($"Anzahl Orphan Akte: {_ikarosOrphanItemsDict.Count()}");
 
-      File.WriteAllText(@"h:\tmp\avs\Subito_Doubletten.csv", sb.ToString());  
+      Console.WriteLine($"Anzahl Gläubiger: {_gläubigerDict.Count}");
+      Console.WriteLine($"Anzahl Subito Akte: {_tranferContainerDict.Count}");
+      Console.WriteLine($"Anzahl Orphan Akte: {_ikarosOrphanItemsDict.Count()}");
 
     } //end     static void Main(string[] args)
 
