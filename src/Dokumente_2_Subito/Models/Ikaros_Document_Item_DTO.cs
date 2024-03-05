@@ -10,6 +10,7 @@ namespace Dokumente_2_Subito.Models
   public class Ikaros_Document_Item_DTO
   {
     public string IkarosAnr { get; set; }
+    public int    IkarosAnrIndex { get; set; } 
     public string GläubigerName { get; set; }
     public string GläubigerNotizen { get; set; }
     public string SchuldnerName { get; set; }
@@ -30,6 +31,7 @@ namespace Dokumente_2_Subito.Models
     public Ikaros_Document_Item_DTO(IDataReader rdr)
     {
       this.IkarosAnr = rdr["Aktenzeichen"].To<string>();
+      this.IkarosAnrIndex = rdr["UnterAktNr"].To<int>();
       this.GläubigerName = rdr["Gläubiger"].To<string>();
       this.GläubigerNotizen = rdr["GläubigerNotizen"].To<string>();
       this.SchuldnerName = rdr["Schuldner"].To<string>();
@@ -44,40 +46,13 @@ namespace Dokumente_2_Subito.Models
       this.FileName = rdr["FileName"].To<string>(); 
       this.FileType = rdr["FileType"].To<string>();
       this.AktenNotiz = rdr["AktenNotiz"].To<string>();
+      //Anpassen der IkarosAnr an die Nomenklatur mit /AktIndex
+      this.IkarosAnr = this.IkarosAnr + $"/{this.IkarosAnrIndex}";
     }
 
   } //end   public class Ikaros_Tupel_DTO
 
 } //end namespace Dokumente_2_Subito.Models
-
-/*
-SELECT  
-  a.Az AS Aktenzeichen 
-  ,k.Name1 AS Gläubiger
-  ,k.Notizen AS GläubigerNotizen
-  ,k2.Suchbegriff AS Schuldner
-  ,k2.Notizen AS SchuldnerNotizen
-  ,v.Datum AS Datum 
-  ,vv.Kuerzel AS Kürzel
-  ,v.Kurztext AS Kurztext
-  ,v.Betrag AS Betrag
-  ,v.Bemerkung AS Bemerkung
-  ,CASE
-     WHEN (SELECT d.Dok_ID FROM Akte a JOIN Vorgang v2 ON v.Akte_ID = a.Akte_ID JOIN Dokument d ON d.RefID = v.Vg_ID WHERE d.RefTabelle = 'Vorgang' AND d.Speicherungsart = 'F' AND v.Vg_ID = v2.Vg_ID) IS NOT NULL 
-     THEN 'C:\ExterneDokumente\' + RIGHT((SELECT d.Dok_ID FROM Akte a JOIN Vorgang v2 ON v.Akte_ID = a.Akte_ID JOIN Dokument d ON d.RefID = v.Vg_ID WHERE d.RefTabelle = 'Vorgang' AND d.Speicherungsart = 'F' AND v.Vg_ID = v2.Vg_ID), 3) + '\'
-     ELSE NULL 
-   END AS Filepath
-  ,(SELECT d.Dok_ID FROM Akte a JOIN Vorgang v2 ON v.Akte_ID = a.Akte_ID JOIN Dokument d ON d.RefID = v.Vg_ID WHERE d.RefTabelle = 'Vorgang' AND d.Speicherungsart = 'F' AND v.Vg_ID = v2.Vg_ID) AS Filename
-  ,(SELECT d.Extension FROM Akte a JOIN Vorgang v2 ON v.Akte_ID = a.Akte_ID JOIN Dokument d ON d.RefID = v.Vg_ID WHERE d.RefTabelle = 'Vorgang' AND d.Speicherungsart = 'F' AND v.Vg_ID = v2.Vg_ID) AS Filetype
-  ,a.Notizen AS AktenNotiz
-FROM Akte a
-  JOIN Vorgang v ON v.Akte_ID = a.Akte_ID
-  JOIN VgVorlage vv ON vv.VgVorl_ID = v.VgVorl_ID
-  JOIN Kontakt k ON k.Kontakt_ID = a.Mandant_ID
-  JOIN Kontakt k2 ON k2.Kontakt_ID = a.Schuldner_ID
-ORDER BY a.Az, v.Datum, v.lupdate;
-
-*/
 
 
 

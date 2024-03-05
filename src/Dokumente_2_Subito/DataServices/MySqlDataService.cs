@@ -40,8 +40,8 @@ namespace Dokumente_2_Subito.DataServices
           ,p2.NAME AS "Schuldner"
         FROM ink_akte 
         INNER JOIN dyn_feld ON ink_akte.ID = dyn_feld.REFERENZ_OBJEKT_ID AND dyn_feld.ADM_DYN_FELD_ID = 633819
-        INNER JOIN ink_beteiligte_person ON ink_akte.ID = ink_beteiligte_person.ink_akte_id
-        INNER JOIN party p1  ON ink_beteiligte_person.PARTY_ID = p1.ID
+        LEFT OUTER JOIN ink_beteiligte_person ON ink_akte.ID = ink_beteiligte_person.ink_akte_id
+        LEFT OUTER JOIN party p1  ON ink_beteiligte_person.PARTY_ID = p1.ID
         INNER JOIN schuldner ON ink_akte.SCHULDNER_ID = schuldner.ID
         INNER JOIN party p2  ON schuldner.PARTY_ID =  p2.ID
 

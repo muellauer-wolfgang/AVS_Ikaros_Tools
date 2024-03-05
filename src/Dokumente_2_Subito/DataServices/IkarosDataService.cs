@@ -36,6 +36,7 @@ namespace Dokumente_2_Subito.DataServices
       string query = """
         SELECT  
           a.Az AS Aktenzeichen 
+          ,a.UnterAkte AS UnterAktNr
           ,k.Name1 AS Gläubiger
           ,k.Notizen AS GläubigerNotizen
           ,k2.Suchbegriff AS Schuldner
@@ -60,6 +61,8 @@ namespace Dokumente_2_Subito.DataServices
           JOIN Kontakt k ON k.Kontakt_ID = a.Mandant_ID
           JOIN Kontakt k2 ON k2.Kontakt_ID = a.Schuldner_ID
           JOIN Adresse adr ON k2.Kontakt_ID = adr.Kontakt_ID
+        WHERE
+          a.Az IN ('20160005073', '20140000885', '20170014007')
         ORDER BY a.Az, v.Datum, v.lupdate;
         """;
       if (_connection.State != ConnectionState.Open) {
