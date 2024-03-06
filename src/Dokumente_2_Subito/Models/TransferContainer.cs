@@ -218,7 +218,14 @@ namespace Dokumente_2_Subito.Models
         Directory.CreateDirectory(attachmentDir);
       }
 
-      this.Write_Notes_to_File(attachmentDir, subitoAnr);
+      string migrationDescriptionFileName = Write_Notes_to_File(attachmentDir, subitoAnr);
+      FileInfo fimr = new FileInfo(migrationDescriptionFileName);
+      string updateString = this.CreateUpdateQuery(
+        fimr.Name,
+        DateTime.Now,
+        "Migration_Report",
+        fimr.Name.Replace(".txt", ".html"));
+      this.SqlUpdateQueryList.Add(updateString);
 
       if (!Directory.Exists(attachmentDir)) { Directory.CreateDirectory(attachmentDir); }
       foreach (FileNameAndMappingName fItem in this._fileNameLongList) {
@@ -318,7 +325,7 @@ namespace Dokumente_2_Subito.Models
       return query;
     }
 
-    private void Write_Notes_to_File(string attachmentPath, string subitoAnr)
+    private string Write_Notes_to_File(string attachmentPath, string subitoAnr)
     {
       string htmlTemplate = File.ReadAllText("Template_Notizen.html");
       string varTitel = $"{this.IkarosAnr}";
@@ -336,7 +343,9 @@ namespace Dokumente_2_Subito.Models
       htmlTemplate = htmlTemplate.Replace("<!--NotizenAkt-->", varNotizenAkt.ToString());
 
       string ikNr = this.IkarosAnr.Replace('/', '_');
-      File.WriteAllText(Path.Combine(attachmentPath, $"Migrierte_Dokumente_{ikNr}.html"), htmlTemplate);
+      string migrierteDokumenteFileName = Path.Combine(attachmentPath, $"Migrierte_Dokumente_{ikNr}.txt");
+      File.WriteAllText(migrierteDokumenteFileName, htmlTemplate);
+      return migrierteDokumenteFileName;
     }
 
     public int CalcMaxLenGläubigerNotizen()
