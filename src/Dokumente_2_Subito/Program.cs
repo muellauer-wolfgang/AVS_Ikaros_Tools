@@ -149,7 +149,11 @@ namespace Dokumente_2_Subito
       Console.WriteLine($"MaxLenBemerkung:        {maxLenBemerkung}");
       Console.WriteLine($"MaxLenAktenNotiz:       {maxLenAktenNotiz}");
 
-      foreach(TransferContainer tc in _tranferContainerDict.Values) {
+
+      //Queries sammeln
+      List<string> alleQueries = new();
+
+      foreach (TransferContainer tc in _tranferContainerDict.Values) {
         //ich teste nur mit 2 Akten: 
         if (!tc.IkarosAnr.StartsWith("20160005073") 
           && !tc.IkarosAnr.StartsWith("20140000885")
@@ -158,17 +162,22 @@ namespace Dokumente_2_Subito
         }
 
         //jetzt muss ich für jeden Subito Akt, der zu dem tc passt, die 
-        //Daten hinausschreiben
         if (_ikaros_2_subito_lookup.ContainsKey(tc.IkarosAnr)) {
           foreach (Mapping_Ikaros_Subito mapping in _ikaros_2_subito_lookup[tc.IkarosAnr]) {
             string subitoAnr = mapping.SubitoAnr;
             tc.PrepareIkarosItemsForMigration(mapping.SubitoAnr);
             tc.MigrateIkarosItems(mapping.SubitoAnr);
+            foreach(string q in tc.SqlUpdateQueryList) {
+              string qneu = q.Replace("%SUBITO_ANR%", $"'{subitoAnr}'");
+              alleQueries.Add(qneu);
+            }
           }
         }
       }
+      Console.WriteLine($"Anzahl der Queries: {alleQueries.Count}");
+      File.WriteAllLines(@"h:\tmp\AVS\Export_Msg\update_documents.sql", alleQueries);
 
-      foreach(var kvp in TransferContainer.GetFileTypeHistogramm()) { 
+      foreach (var kvp in TransferContainer.GetFileTypeHistogramm()) { 
         Console.WriteLine($"FileType: {kvp.Key} Count: {kvp.Value}");
       }
       Console.WriteLine($"FilesFound Count: {TransferContainer.GetFileFoundCount()}");
