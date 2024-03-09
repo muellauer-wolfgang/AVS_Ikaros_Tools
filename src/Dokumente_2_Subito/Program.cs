@@ -175,7 +175,7 @@ namespace Dokumente_2_Subito
         }
       }
       Console.WriteLine($"Anzahl der Queries: {alleQueries.Count}");
-      File.WriteAllLines(@"h:\tmp\AVS\Export_Msg\update_documents.sql", alleQueries);
+      File.WriteAllLines(Path.Combine(_config.ExportPath, "update_documents.sql"), alleQueries);
 
       foreach (var kvp in TransferContainer.GetFileTypeHistogramm()) { 
         Console.WriteLine($"FileType: {kvp.Key} Count: {kvp.Value}");

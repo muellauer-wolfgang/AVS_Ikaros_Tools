@@ -41,6 +41,10 @@ namespace Dokumente_2_Subito.Models
       %OLD_FILENAME%' ;
       """;
 
+    private static string _updateQueryChangeAnhang = """
+      UPDATE fmm_anhang SET FILE_NAME = '%NEW_FILENAME%' WHERE FILE_NAME = '%OLD_FILENAME%' ; 
+      """;
+
     private SortedSet<FileNameAndMappingName> _fileNameLongList = new();
     public string IkarosAnr { get; set; }
     public string Gläubiger { get; set; }
@@ -150,10 +154,10 @@ namespace Dokumente_2_Subito.Models
 
               if (_acceptedExtensions.Contains(fi.Extension.ToLower())) {
                 string fileName = fi.Name;
-                DateTime fileDate = fi.CreationTime;
+                DateTime fileDate = fi.LastWriteTime;
                 string kurzText = idto.Kurztext;
 
-                string q = CreateUpdateQuery(fileName, fileDate, kurzText, fileName);
+                string q = CreateUpdateQueryListEntry(fileName, fileDate, kurzText, fileName);
                 SqlUpdateQueryList.Add(q);
                 Notiz n = new Notiz {
                   Datum = idto.Datum, Art = NotizArt.Datei, Kürzel = idto.Kürzel, Kurztext = idto.Kurztext,
@@ -162,17 +166,17 @@ namespace Dokumente_2_Subito.Models
                 Notizen.Add(n);
 
               } else {
-                //todo: file in guid mit .txt extension renamen, dann 
-                //einschleusen
                 Console.WriteLine("Alias anlegen");
                 string aliasFileName = Guid.NewGuid().ToString("N") + ".txt";
                 fileNameAndMappingName.Alias = aliasFileName;
                 string fileName = fi.Name;
-                DateTime fileDate = fi.CreationTime;
+                DateTime fileDate = fi.LastWriteTime;
                 string kurzText = idto.Kurztext;
 
-                string q = CreateUpdateQuery(aliasFileName, fileDate, kurzText, fileName);
+                string q = CreateUpdateQueryListEntry(aliasFileName, fileDate, kurzText, fileName);
                 SqlUpdateQueryList.Add(q);
+                string r = CreateUpdateQueryAnhang(aliasFileName, fileName);
+                SqlUpdateQueryList.Add(r);
                 Notiz n = new Notiz {
                   Datum = idto.Datum, Art = NotizArt.Datei, Kürzel = idto.Kürzel, Kurztext = idto.Kurztext,
                   Text = fi.Name, FileName = ExtractFileName(idto)
@@ -220,12 +224,14 @@ namespace Dokumente_2_Subito.Models
 
       string migrationDescriptionFileName = Write_Notes_to_File(attachmentDir, subitoAnr);
       FileInfo fimr = new FileInfo(migrationDescriptionFileName);
-      string updateString = this.CreateUpdateQuery(
+      string updateString = this.CreateUpdateQueryListEntry(
         fimr.Name,
         DateTime.Now,
         "Migration_Report",
         fimr.Name.Replace(".txt", ".html"));
-      this.SqlUpdateQueryList.Add(updateString);
+      SqlUpdateQueryList.Add(updateString);
+      string r = this.CreateUpdateQueryAnhang(fimr.Name, fimr.Name.Replace(".txt", ".html"));
+      SqlUpdateQueryList.Add(r);
 
       if (!Directory.Exists(attachmentDir)) { Directory.CreateDirectory(attachmentDir); }
       foreach (FileNameAndMappingName fItem in this._fileNameLongList) {
@@ -273,10 +279,10 @@ namespace Dokumente_2_Subito.Models
 
             if (_acceptedExtensions.Contains(fi.Extension.ToLower())) {
               string fileName = fi.Name;
-              DateTime fileDate = fi.CreationTime;
+              DateTime fileDate = fi.LastWriteTime;
               string kurzText = idto.Kurztext;
 
-              string q = CreateUpdateQuery(fileName, fileDate, kurzText, fileName);
+              string q = CreateUpdateQueryListEntry(fileName, fileDate, kurzText, fileName);
               SqlUpdateQueryList.Add(q);
               Notiz n = new Notiz {
                 Datum = idto.Datum, Art = NotizArt.Datei, Kürzel = idto.Kürzel, Kurztext = idto.Kurztext,
@@ -285,17 +291,18 @@ namespace Dokumente_2_Subito.Models
               Notizen.Add(n);
 
             } else {
-              //todo: file in guid mit .txt extension renamen, dann 
-              //einschleusen
               Console.WriteLine("Alias anlegen");
               string aliasFileName = Guid.NewGuid().ToString("N") + ".txt";
               fileNameAndMappingName.Alias = aliasFileName;
               string fileName = fi.Name;
-              DateTime fileDate = fi.CreationTime;
+              DateTime fileDate = fi.LastWriteTime;
               string kurzText = idto.Kurztext;
 
-              string q = CreateUpdateQuery(aliasFileName, fileDate, kurzText, fileName);
+              string q = CreateUpdateQueryListEntry(aliasFileName, fileDate, kurzText, fileName);
               SqlUpdateQueryList.Add(q);
+              string r = CreateUpdateQueryAnhang(aliasFileName, fileName);
+              SqlUpdateQueryList.Add(r);
+
               Notiz n = new Notiz {
                 Datum = idto.Datum, Art = NotizArt.Datei, Kürzel = idto.Kürzel, Kurztext = idto.Kurztext,
                 Text = fi.Name, FileName = ExtractFileName(idto)
@@ -314,7 +321,7 @@ namespace Dokumente_2_Subito.Models
     /// <summary>
     /// hier erzeuge ich die massgeschneiderte Update Query
     /// </summary>
-    private string CreateUpdateQuery(string oldFileName, DateTime fileDate, string kurzText, string newFileName)
+    private string CreateUpdateQueryListEntry(string oldFileName, DateTime fileDate, string kurzText, string newFileName)
     {
       string query = _updateQueryChangeListEntry;
       string cd = fileDate.ToString("yyyy-MM-dd HH:mm:ss.ffffff");
@@ -323,6 +330,15 @@ namespace Dokumente_2_Subito.Models
       query = query.Replace("%NEW_FILENAME%", newFileName);
       query = query.Replace("%OLD_FILENAME%", oldFileName);
       return query;
+    }
+
+    private string CreateUpdateQueryAnhang(string oldFileName, string newFileName)
+    {
+      string query = _updateQueryChangeAnhang;
+      query = query.Replace("%NEW_FILENAME%", newFileName);
+      query = query.Replace("%OLD_FILENAME%", oldFileName);
+      return query;
+
     }
 
     private string Write_Notes_to_File(string attachmentPath, string subitoAnr)
