@@ -150,18 +150,26 @@ namespace Dokumente_2_Subito
       Console.WriteLine($"MaxLenAktenNotiz:       {maxLenAktenNotiz}");
 
 
-      //Queries sammeln
+      //Queries und Statistik-Daten sammeln
       List<string> alleQueries = new();
-
+      int schuldnerAbrechnungAssignedCnt = 0;
+      int schuldnerAbrechnungNotAssigendCnt = 0;
+      HashSet<string> forderungsabrechungenGesamt = new HashSet<string>();
+      HashSet<string> forderusabrechungenZugeordnet = new HashSet<string>(); 
+      foreach(string fn in Directory.EnumerateFiles(_config.SchulderAbrechnungPath)) {
+        forderungsabrechungenGesamt.Add(fn);
+      }
+      Console.WriteLine($"Anzahl Forderungsabrechnungen: {forderungsabrechungenGesamt.Count}");
       foreach (TransferContainer tc in _tranferContainerDict.Values) {
+/*
         //ich teste nur mit 2 Akten: 
         if (!tc.IkarosAnr.StartsWith("20160005073") 
           && !tc.IkarosAnr.StartsWith("20140000885")
           && !tc.IkarosAnr.StartsWith("20170014007") ) {
           continue;
         }
-
-        //jetzt muss ich für jeden Subito Akt, der zu dem tc passt, die 
+*/
+        //jetzt muss ich für jeden Subito Akt, der zu dem tc passt, die zuordnung machen und alles raus
         if (_ikaros_2_subito_lookup.ContainsKey(tc.IkarosAnr)) {
           foreach (Mapping_Ikaros_Subito mapping in _ikaros_2_subito_lookup[tc.IkarosAnr]) {
             string subitoAnr = mapping.SubitoAnr;
@@ -171,9 +179,22 @@ namespace Dokumente_2_Subito
               string qneu = q.Replace("%SUBITO_ANR%", $"'{subitoAnr}'");
               alleQueries.Add(qneu);
             }
+            if (!string.IsNullOrEmpty(tc.ForderungsaufstellungFileName)) {
+             
+              schuldnerAbrechnungAssignedCnt++;
+              forderungsabrechungenGesamt.Remove(tc.ForderungsaufstellungFileName);
+              forderusabrechungenZugeordnet.Add(tc.ForderungsaufstellungFileName);
+            } else {
+              schuldnerAbrechnungNotAssigendCnt++;
+            }
           }
         }
       }
+      Console.WriteLine($"Anzahl Akte mit  Forderungsaufstellung: {schuldnerAbrechnungAssignedCnt}");
+      Console.WriteLine($"Anzahl Akte ohne Forderungsaufstellung: {schuldnerAbrechnungNotAssigendCnt}");
+      Console.WriteLine($"Anzahl Forderungsaufstellungen nicht zugeordnet: {forderungsabrechungenGesamt.Count}");
+      Console.WriteLine($"Anzahl Forderungsaufstellungen zugeordnet: {forderusabrechungenZugeordnet.Count}");
+
       Console.WriteLine($"Anzahl der Queries: {alleQueries.Count}");
       File.WriteAllLines(Path.Combine(_config.ExportPath, "update_documents.sql"), alleQueries);
 

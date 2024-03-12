@@ -18,9 +18,9 @@ namespace Dokumente_2_Subito.Infrastructure
 
     public string ExportPath => @"H:\tmp\AVS\Export_Documents";
 
-    public string IkarosDocumentPath => @"H:\mdc\Kunden\AVS\Software_Ikaros\_Ikaros_Dokumente\Ikaros_File_Store";
+    public string IkarosDocumentPath =>     @"H:\mdc\Kunden\AVS\Software_Ikaros\_Ikaros_Dokumente\Ikaros_File_Store";
 
-    public string SchulderAbrechnungPath => @"H:\mdc\Kunden\AVS\Software_Ikaros\_Ikaros_Dokumente\Ikaros_Schuldner_Abrechnungen";
+    public string SchulderAbrechnungPath => @"H:\mdc\Kunden\AVS\Software_Ikaros\_Ikaros_Dokumente\Ikaros_Forderungsaufstellungen";
 
   } //end   public class ConfigProvider
 

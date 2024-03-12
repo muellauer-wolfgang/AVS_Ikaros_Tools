@@ -18,7 +18,6 @@ namespace Dokumente_2_Subito.Models
 {
   public class TransferContainer
   {
-    private IConfigProvider _cfg;
     private static int _directoryCurrentIndex { get; set; } = 0;
     private static int _fileFoundCount = 0;
     private static int _fileNotFoundCount = 0;
@@ -28,6 +27,7 @@ namespace Dokumente_2_Subito.Models
     //private static List<string> _fileRenameSqlStatements = new List<string>();
     //private static List<string> _fileChangeDataSqlStatements = new List<string>();
     private static Regex _rxIkarosDocSubDir = new Regex(@"^\D*(?<SUBDIR>\d+)\D*$");
+    private static Regex _rxIkarosStammAkt = new Regex(@"^(?<STAMM>\d+).+$");
 
     private static string _updateQueryChangeListEntry = """
       UPDATE ink_workflow_historie AS iwhi
@@ -45,7 +45,11 @@ namespace Dokumente_2_Subito.Models
       UPDATE fmm_anhang SET FILE_NAME = '%NEW_FILENAME%' WHERE FILE_NAME = '%OLD_FILENAME%' ; 
       """;
 
+
+    private IConfigProvider _cfg;
+
     private SortedSet<FileNameAndMappingName> _fileNameLongList = new();
+    public string ForderungsaufstellungFileName { get; set; }
     public string IkarosAnr { get; set; }
     public string Gläubiger { get; set; }
     public List<Ikaros_Document_Item_DTO> IkarosItemList { get; private set; } = new();
@@ -189,6 +193,24 @@ namespace Dokumente_2_Subito.Models
         }
 
       }
+
+      //jetzt kontrolliere ich, ob es eine Schuldner-Abrechnung gibt und 
+      //wenn ja, dann kommt sie in die FileName Long List
+      if (_rxIkarosStammAkt.IsMatch(this.IkarosAnr)) {
+        Match match = _rxIkarosStammAkt.Match(this.IkarosAnr);
+        string stammAkt = match.Groups["STAMM"].Value.Trim();
+        string fnForderungsaufstellungLong = Path.Combine(_cfg.SchulderAbrechnungPath, "Forderungsaufstellung_" + stammAkt + ".pdf");
+        if (File.Exists(fnForderungsaufstellungLong)) {
+          this.ForderungsaufstellungFileName = fnForderungsaufstellungLong;
+          _fileNameLongList.Add(new FileNameAndMappingName(
+            fnForderungsaufstellungLong
+            ));
+        }
+      } else {
+        Console.WriteLine("AnrFalsch");
+      }
+
+
     }
 
     /// <summary>
@@ -245,6 +267,7 @@ namespace Dokumente_2_Subito.Models
         }
       }
     }
+
 
     private string ExtractFileName(Ikaros_Document_Item_DTO idto)
     {
